@@ -1,0 +1,13 @@
+langchain
+langchain-google-genai
+langchain-community
+langchain-core
+langchain-chroma
+langchain-huggingface
+langchain-text-splitters
+langchain_unstructured
+beautifulsoup4
+playwright
+dotenv
+flask-sqlalchemy
+psycopg2-binary

@@ -1,0 +1,13 @@
+from backend.database.db import db
+
+class Analysis(db.Model):
+
+    __tablename__ = "analysis"
+
+    id = db.Column(db.Integer, primary_key=True)
+    job_id = db.Column(db.Integer)
+    score = db.Column(db.Integer)
+    matched_skills = db.Column(db.JSON)
+    missing_skills = db.Column(db.JSON)
+    suggestions = db.Column(db.JSON)
+    evaluation_summary = db.Column(db.JSON)
