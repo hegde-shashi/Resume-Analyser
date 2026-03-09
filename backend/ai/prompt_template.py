@@ -210,39 +210,56 @@ def cover_letter_prompt(candidate_name, resume, job_description):
     """
 
 
-def chat_prompt(resume, job, history, question):
+def chat_prompt():
 
-    history_text = ""
+    # return f"""
+    #             You are an AI career assistant helping a candidate with a specific job application.
 
-    for msg in history:
+    #             Response Style:
+    #             - Maximum 400 words
+    #             - Use bullet points wherever required
+    #             - Focus only on the most important points
+    #             - If you dont know the answer, politely say you dont know, don't make it up
+    #             - If the question is unrelated, politely say you can only help related to this job
+    #             - If no resume is provided, politely say to provide a resume.
 
-        if msg["role"] == "user":
-            history_text += f"User: {msg['content']}\n"
+    #             Candidate Resume:
+    #             {resume}
 
-        if msg["role"] == "assistant":
-            history_text += f"Assistant: {msg['content']}\n"
+    #             Job Information:
 
-    return f"""
-                You are an AI career assistant helping a candidate with a specific job application.
+    #             Job Title: {job.job_title}
+    #             Job Link: {job.job_link}
+    #             Company: {job.company}
+    #             Location: {job.location}
+    #             Application Progress: {job.progress}
 
-                Response Style:
-                - Maximum 400 words
-                - Use bullet points wherever required
-                - Focus only on the most important points
-                - If you dont know the answer, politely say you dont know, don't make it up
-                - If the question is unrelated, politely say you can only help related to this job
-                - If no resume is provided, politely say to provide a resume.
+    #             User Question: {question}
+    #         """
 
-                Candidate Resume:
-                {resume}
+    return ChatPromptTemplate.from_messages([
+                    ("system",
+                    """
+                    You are an AI job assistant.
+                    Response Style:
+                    - Maximum 400 words
+                    - Use bullet points if required
+                    - Focus only on the most important points
+                    - If you dont know the answer, politely say you dont know, don't make it up
+                    - If the question is unrelated, politely say you can only help related to this job
+                    - If no resume is provided, politely say to provide a resume.
 
-                Job Information:
+                    Resume:
+                    {context}
 
-                Job Title: {job.job_title}
-                Job Link: {job.job_link}
-                Company: {job.company}
-                Location: {job.location}
-                Application Progress: {job.progress}
+                    Company: {company}
+                    Role: {role}
+                    Job Description: {job_description}
+                    Stage: {progress}
 
-                User Question: {question}
-            """
+                    Previous Conversation:
+                    {history_text}
+                    """
+                    ),
+                    ("human","{input}")
+                    ])      

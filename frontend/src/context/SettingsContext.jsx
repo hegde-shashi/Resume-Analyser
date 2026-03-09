@@ -21,7 +21,7 @@ export function SettingsProvider({ children }) {
             setModels(list)
             // pick first model if current selection not in list
             if (list.length > 0 && !list.includes(model)) {
-                setModel(list.find(m => m.includes('flash')) || list[0])
+                setModel(list.find(m => m.includes('2.5-flash-lite')) || list.find(m => m.includes('2.5-flash')) || list[0])
             }
         } catch {
             setModels([])
@@ -57,7 +57,7 @@ export function SettingsProvider({ children }) {
             setApiMode('user')
             setShowKeyModal(false)
             if (list.length > 0 && !list.includes(model)) {
-                setModel(list.find(m => m.includes('flash')) || list[0])
+                setModel(list.find(m => m.includes('2.5-flash-lite')) || list.find(m => m.includes('2.5-flash')) || list[0])
             }
             return { success: true }
         } catch (err) {

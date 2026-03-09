@@ -18,7 +18,7 @@ def generate_mail():
 
     data = request.get_json()
 
-    llm = get_llm(data)
+    llm = get_llm(data, temperature=0.6)
 
     job = Jobs.query.filter_by(
         id=data["job_id"],
@@ -51,7 +51,7 @@ def generate_cover_letter():
 
     data = request.get_json()
 
-    llm = get_llm(data)
+    llm = get_llm(data, temperature=0.6)
 
     job = Jobs.query.filter_by(
         id=data["job_id"],

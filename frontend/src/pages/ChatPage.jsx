@@ -14,12 +14,36 @@ export default function ChatPage() {
     const [loading, setLoading] = useState(false)
     const bottomRef = useRef()
 
+    function handleSelectJob(newJobId) {
+        setSelectedJob(newJobId)
+        if (!newJobId) {
+            setMessages([])
+            return
+        }
+        const saved = sessionStorage.getItem(`chat_${newJobId}`)
+        if (saved) {
+            try {
+                setMessages(JSON.parse(saved))
+            } catch {
+                setMessages([])
+            }
+        } else {
+            setMessages([])
+        }
+    }
+
     useEffect(() => {
         api.get('/get_jobs').then(r => {
             setJobs(r.data)
-            if (r.data.length > 0) setSelectedJob(r.data[0].id)
+            if (r.data.length > 0 && !selectedJob) handleSelectJob(r.data[0].id)
         })
     }, [])
+
+    useEffect(() => {
+        if (selectedJob && messages.length > 0) {
+            sessionStorage.setItem(`chat_${selectedJob}`, JSON.stringify(messages))
+        }
+    }, [messages, selectedJob])
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -99,7 +123,7 @@ export default function ChatPage() {
                 {jobs.map(j => (
                     <div
                         key={j.id}
-                        onClick={() => { setSelectedJob(j.id); setMessages([]) }}
+                        onClick={() => handleSelectJob(j.id)}
                         style={{
                             padding: '0.75rem',
                             borderRadius: 'var(--radius-md)',
@@ -122,7 +146,7 @@ export default function ChatPage() {
                     <select
                         className="form-select"
                         value={selectedJob}
-                        onChange={e => { setSelectedJob(e.target.value); setMessages([]) }}
+                        onChange={e => handleSelectJob(e.target.value)}
                         style={{ width: '100%' }}
                     >
                         <option value="">— Select a job session —</option>

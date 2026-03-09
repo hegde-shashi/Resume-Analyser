@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { BrowserRouter } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -21,9 +21,13 @@ const PAGE_TITLES = {
 
 function AppShell() {
   const { isAuth } = useAuth()
-  const [page, setPage] = useState('dashboard')
+  const [page, setPage] = useState(() => localStorage.getItem('lastPage') || 'dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarHidden, setSidebarHidden] = useState(false)
+
+  useEffect(() => {
+    localStorage.setItem('lastPage', page)
+  }, [page])
 
   if (!isAuth) return <AuthPage />
 

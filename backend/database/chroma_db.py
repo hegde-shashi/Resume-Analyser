@@ -1,12 +1,8 @@
 from langchain_chroma import Chroma
-from chromadb import Client, Settings
+import chromadb
 from backend.services.embedding_services import google_embedding
 
-client = Client(
-    Settings(
-        persist_directory="./vector_store/chroma_db"
-    )
-)
+client = chromadb.PersistentClient(path="./vector_store/chroma_db")
 
 embedding = google_embedding()
 

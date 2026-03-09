@@ -20,11 +20,13 @@ def handle_llm_error(e):
     else:
         return f"AI Service Error: {str(e)}"
 
-def get_llm(data):
+def get_llm(data, streaming=False, temperature=0):
     try:
-        model = data.get('model', 'gemini-1.5-flash')
+        model = data.get('model', 'gemini-2.5-flash-lite')
+        if model == 'gemini-1.5-flash':
+            model = 'gemini-2.5-flash-lite'
         mode = data.get('mode', 'default')
-
+    
         if mode == 'user':
             api_key = data.get('api_key')
         else:
@@ -33,7 +35,7 @@ def get_llm(data):
         if not api_key:
             raise ValueError("Google API Key is missing. Please check your settings.")
             
-        return ChatGoogleGenerativeAI(model=model, google_api_key=api_key)
+        return ChatGoogleGenerativeAI(model=model, google_api_key=api_key, streaming=streaming, temperature=temperature)
     except Exception as e:
         raise RuntimeError(handle_llm_error(e))
 
@@ -50,7 +52,7 @@ def check_llm(API_KEY):
                 res.append(str(m.name).split("/")[1])
         
         if not res:
-            return ["gemini-1.5-flash", "gemini-1.5-pro"] 
+            return ["gemini-2.5-flash", "gemini-2.5-flash-lite"] 
         return res
     except Exception as e:
         raise ValueError(handle_llm_error(e))

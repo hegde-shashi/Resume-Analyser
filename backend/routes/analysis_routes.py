@@ -22,7 +22,7 @@ def analyze_job():
     job_id = data["job_id"]
 
     try:
-        llm = get_llm(data)
+        llm = get_llm(data, temperature=0.2)
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
