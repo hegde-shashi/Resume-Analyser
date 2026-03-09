@@ -1,6 +1,22 @@
 from backend.utils.utils import clean
 from langchain_core.prompts import ChatPromptTemplate
 
+def resume_check(text):
+    prompt = ChatPromptTemplate.from_template(
+        """
+            Determine if the following document is a professional resume.
+
+            Return ONLY JSON:
+
+            {
+                "is_resume": true or false
+            }
+
+            Document:
+            {text}
+        """
+    )
+    return prompt
 
 def job_description_prompt():
     return ChatPromptTemplate.from_template(

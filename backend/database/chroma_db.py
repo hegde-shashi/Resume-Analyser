@@ -1,13 +1,59 @@
 from langchain_chroma import Chroma
+from chromadb import Client, Settings
+from backend.services.embedding_services import google_embedding
 
-def store_in_chroma(docs, embedding):
+client = Client(
+    Settings(
+        persist_directory="./vector_store/chroma_db"
+    )
+)
 
-    vector_db = Chroma(
-        collection_name="resume_index",
+embedding = google_embedding()
+
+
+def store_resume_embeddings(chunks, user_id):
+
+    collection_name = f"resume_user_{user_id}"
+
+    vector_store = Chroma(
+        collection_name=collection_name,
         embedding_function=embedding,
-        persist_directory="./migrations/vector_stores"
+        client=client
     )
 
-    vector_db.add_documents(docs)
+    ids = [f"resume_user_{user_id}_chunk_{i}" for i in range(len(chunks))]
 
-    return vector_db
+    vector_store.add_texts(
+        texts=chunks,
+        ids=ids,
+        metadatas=[{"user_id": user_id, "type": "resume"} for _ in chunks]
+    )
+
+    return collection_name
+
+
+def get_resume_retriever(user_id):
+
+    collection_name = f"resume_user_{user_id}"
+
+    vector_store = Chroma(
+        collection_name=collection_name,
+        embedding_function=embedding,
+        client=client
+    )
+
+    retriever = vector_store.as_retriever(
+        search_kwargs={"k": 3}
+    )
+
+    return retriever
+
+
+def delete_resume_embeddings(user_id):
+
+    collection_name = f"resume_user_{user_id}"
+
+    try:
+        client.delete_collection(collection_name)
+    except:
+        pass

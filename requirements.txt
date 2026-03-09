@@ -1,13 +1,51 @@
-langchain
-langchain-google-genai
-langchain-community
-langchain-core
-langchain-chroma
-langchain-huggingface
-langchain-text-splitters
-langchain_unstructured
-beautifulsoup4
-playwright
-dotenv
-flask-sqlalchemy
-psycopg2-binary
+# ── Web Framework ──────────────────────────────────────────────────
+Flask==3.1.0
+Flask-SQLAlchemy==3.1.1
+Flask-JWT-Extended==4.7.1
+Flask-Bcrypt==1.0.1
+flask-cors==5.0.1
+
+# ── Production WSGI server ─────────────────────────────────────────
+gunicorn==23.0.0
+
+# ── Database ───────────────────────────────────────────────────────
+psycopg2-binary==2.9.11
+SQLAlchemy==2.0.36
+
+# ── LangChain core stack ───────────────────────────────────────────
+langchain==1.2.10
+langchain-core==1.2.17
+langchain-community==0.4.1
+langchain-text-splitters==1.1.1
+langchain-classic==1.0.2
+
+# ── LangChain Google Gemini ────────────────────────────────────────
+langchain-google-genai==4.2.1
+google-genai==1.66.0
+google-auth==2.49.0
+
+# ── LangChain Vector Store ─────────────────────────────────────────
+langchain-chroma==1.1.0
+chromadb==1.5.4
+
+# ── LangChain Embeddings ───────────────────────────────────────────
+langchain-huggingface==1.2.1
+huggingface-hub==1.6.0
+
+# ── Resume / Document Parsing ──────────────────────────────────────
+langchain-unstructured==1.0.1
+unstructured-client==0.42.10
+pypdf==6.7.5
+python-docx==1.2.0
+
+# ── Job Scraping ───────────────────────────────────────────────────
+playwright==1.58.0
+beautifulsoup4==4.12.3
+
+# ── Environment & Config ───────────────────────────────────────────
+python-dotenv==1.0.1
+
+# ── Utilities ──────────────────────────────────────────────────────
+requests==2.32.5
+pydantic==2.12.5
+pydantic-settings==2.13.1

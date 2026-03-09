@@ -5,7 +5,7 @@ class Jobs(db.Model):
     __tablename__ = "jobs"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer)
+    user_id = db.Column(db.Integer, nullable=False)
     job_link = db.Column(db.Text)
     job_title = db.Column(db.String(200))
     job_id = db.Column(db.String(30))
@@ -18,4 +18,4 @@ class Jobs(db.Model):
     education = db.Column(db.Text)
     job_type = db.Column(db.String(200))
     progress = db.Column(db.String(50))
-    created_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())

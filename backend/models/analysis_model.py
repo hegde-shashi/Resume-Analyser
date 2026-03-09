@@ -5,7 +5,7 @@ class Analysis(db.Model):
     __tablename__ = "analysis"
 
     id = db.Column(db.Integer, primary_key=True)
-    job_id = db.Column(db.Integer)
+    job_id = db.Column(db.Integer, nullable=False)
     score = db.Column(db.Integer)
     matched_skills = db.Column(db.JSON)
     missing_skills = db.Column(db.JSON)
