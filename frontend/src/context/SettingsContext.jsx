@@ -31,7 +31,7 @@ export function SettingsProvider({ children }) {
     }, [model])
 
     // fetch models on mount with default key
-    useEffect(() => { fetchModels('default', '') }, [])
+    useEffect(() => { fetchModels('default', '') }, [fetchModels])
 
     // Build the LLM payload to attach to every API call
     const llmPayload = {
@@ -47,11 +47,25 @@ export function SettingsProvider({ children }) {
         fetchModels('default', '')
     }
 
-    const confirmUserKey = (key) => {
-        setApiKey(key)
-        setApiMode('user')
-        setShowKeyModal(false)
-        fetchModels('user', key)
+    const confirmUserKey = async (key) => {
+        setLoadingModels(true)
+        try {
+            const { data } = await api.post('/check_models', { mode: 'user', api_key: key })
+            const list = data.models || []
+            setModels(list)
+            setApiKey(key)
+            setApiMode('user')
+            setShowKeyModal(false)
+            if (list.length > 0 && !list.includes(model)) {
+                setModel(list.find(m => m.includes('flash')) || list[0])
+            }
+            return { success: true }
+        } catch (err) {
+            const msg = err.response?.data?.error || 'Invalid API Key'
+            return { success: false, error: msg }
+        } finally {
+            setLoadingModels(false)
+        }
     }
 
     return (

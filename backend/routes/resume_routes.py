@@ -5,7 +5,7 @@ from backend.models.resume_model import Resume
 from backend.services.resume_parser import get_resume_text
 from backend.database.chroma_db import store_resume_embeddings, delete_resume_embeddings
 from backend.services.resume_check import validate_resume
-from backend.ai.llm_client import get_llm
+from backend.ai.llm_client import get_llm, handle_llm_error
 
 resume_bp = Blueprint("resume", __name__)
 
@@ -14,7 +14,7 @@ resume_bp = Blueprint("resume", __name__)
 @jwt_required()
 def upload_resume():
     data     = request.get_json()
-    user_id  = get_jwt_identity()
+    user_id  = int(get_jwt_identity())
     file_b64 = data.get("file")
     file_name = data.get("file_name", "resume.pdf")
 
@@ -59,13 +59,13 @@ def upload_resume():
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": handle_llm_error(e)}), 500
 
 
 @resume_bp.route("/get_resume", methods=["GET"])
 @jwt_required()
 def get_resume():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     resume  = Resume.query.filter_by(user_id=user_id).first()
 
     if not resume:
@@ -81,14 +81,19 @@ def get_resume():
 @resume_bp.route("/delete_resume", methods=["DELETE"])
 @jwt_required()
 def delete_resume():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     resume  = Resume.query.filter_by(user_id=user_id).first()
 
     if not resume:
         return {"error": "Resume not found"}, 404
 
-    delete_resume_embeddings(user_id)
-    db.session.delete(resume)
-    db.session.commit()
-
-    return {"message": "Resume deleted"}
+    try:
+        delete_resume_embeddings(user_id)
+        db.session.delete(resume)
+        db.session.commit()
+        return {"message": "Resume deleted"}
+    except Exception as e:
+        db.session.rollback()
+        import logging
+        logging.error(f"Error deleting resume: {e}")
+        return {"error": "Failed to delete resume. Please try again."}, 500

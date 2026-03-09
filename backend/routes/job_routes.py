@@ -4,9 +4,10 @@ from backend.database.db import db
 from backend.services.job_scrapper import scrape_job
 from backend.ai.prompt_template import job_description_prompt
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from backend.ai.llm_client import get_llm
+from backend.ai.llm_client import get_llm, handle_llm_error
 import json
 import re
+from backend.models.analysis_model import Analysis
 
 
 job_bp = Blueprint('job', __name__)
@@ -47,7 +48,7 @@ def parse_job():
         result = chain.invoke({"job_text": clean_html})
         parsed_data = parse_llm_response(result.content)
     except Exception as e:
-        return jsonify({"scrape_success": False, "message": f"Parsing failed: {str(e)}"})
+        return jsonify({"scrape_success": False, "message": handle_llm_error(e)})
 
     return jsonify({"scrape_success": True, "job_data": parsed_data})
 
@@ -63,7 +64,7 @@ def parse_jd():
         result = chain.invoke({"job_text": jd})
         parsed_data = parse_llm_response(result.content)
     except Exception as e:
-        return jsonify({"scrape_success": False, "message": f"Parsing failed: {str(e)}"})
+        return jsonify({"scrape_success": False, "message": handle_llm_error(e)})
 
     return jsonify({"scrape_success": True, "job_data": parsed_data})
 
@@ -71,7 +72,7 @@ def parse_jd():
 @job_bp.route("/save_job", methods=["POST"])
 @jwt_required()
 def save_job():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data    = request.get_json()
 
     # Only pass fields that exist on the model
@@ -95,16 +96,21 @@ def save_job():
 @job_bp.route("/get_jobs", methods=["GET"])
 @jwt_required()
 def get_jobs():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     jobs = Jobs.query.filter_by(user_id=user_id).order_by(Jobs.created_at.desc()).all()
 
     result = []
     for index, job in enumerate(jobs, start=1):
+        # Fetch the latest analysis for this job to show match score if available
+        analysis = Analysis.query.filter_by(job_id=job.id).first()
+        match_score = analysis.score if analysis else None
+
         result.append({
             "ui_index": index,
             "id": job.id,
             "job_title": job.job_title,
             "job_id": job.job_id,
+            "job_link": job.job_link,
             "company": job.company,
             "location": job.location,
             "experience_required": job.experience_required,
@@ -114,6 +120,7 @@ def get_jobs():
             "education": job.education,
             "job_type": job.job_type,
             "progress": job.progress,
+            "matchScore": match_score,
             "created_at": job.created_at.strftime("%d/%m/%Y %H:%M:%S") if job.created_at else "",
         })
 
@@ -123,7 +130,7 @@ def get_jobs():
 @job_bp.route("/delete_job/<int:job_id>", methods=["DELETE"])
 @jwt_required()
 def delete_job(job_id):
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     job = Jobs.query.filter_by(id=job_id, user_id=user_id).first()
 
     if not job:
@@ -137,7 +144,7 @@ def delete_job(job_id):
 @job_bp.route("/update_progress", methods=["POST"])
 @jwt_required()
 def update_progress():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data    = request.get_json()
 
     job = Jobs.query.filter_by(id=data["job_id"], user_id=user_id).first()

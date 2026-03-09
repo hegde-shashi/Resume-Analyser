@@ -3,6 +3,7 @@ import api from '../api'
 import toast from 'react-hot-toast'
 import { Upload, Trash2, FileText, CheckCircle } from 'lucide-react'
 import { useSettings } from '../context/SettingsContext'
+import ConfirmModal from '../components/ConfirmModal'
 
 export default function ResumePage() {
     const { llmPayload } = useSettings()
@@ -49,13 +50,23 @@ export default function ResumePage() {
         }
     }
 
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+    const [deleting, setDeleting] = useState(false)
+
     async function deleteResume() {
-        if (!confirm('Delete your resume? This cannot be undone.')) return
+        setDeleting(true)
         try {
             await api.delete('/delete_resume')
             toast.success('Resume deleted')
             setResume({ resume_exists: false })
-        } catch { toast.error('Delete failed') }
+            setDeleteModalOpen(false)
+        } catch (err) {
+            console.error(err)
+            toast.error(err.response?.data?.error || 'Delete failed')
+            setDeleteModalOpen(false)
+        } finally {
+            setDeleting(false)
+        }
     }
 
     if (loading) return <div className="loading-center"><div className="spinner spinner-lg" /></div>
@@ -63,28 +74,28 @@ export default function ResumePage() {
     return (
         <div>
             <div className="page-header">
-                <h2>My Resume</h2>
+                <h2 className="mobile-hidden">My Resume</h2>
                 <p>Upload your PDF resume for AI-powered analysis</p>
             </div>
 
             {resume?.resume_exists ? (
                 <div className="card">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <div style={{ background: 'var(--success-soft)', borderRadius: 'var(--radius-md)', padding: '1rem', display: 'flex' }}>
+                    <div className="resume-card-inner">
+                        <div className="resume-icon-box">
                             <FileText size={32} color="var(--success)" />
                         </div>
-                        <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                                <CheckCircle size={16} color="var(--success)" />
-                                <span style={{ fontWeight: 700, fontSize: '1rem' }}>{resume.resume_name}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem', overflow: 'hidden' }}>
+                                <CheckCircle size={14} color="var(--success)" style={{ flexShrink: 0 }} />
+                                <span style={{ fontWeight: 700, fontSize: '0.95rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{resume.resume_name}</span>
                             </div>
-                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Uploaded on {resume.created_at}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Uploaded {resume.created_at}</div>
                         </div>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <div className="resume-card-actions">
                             <button className="btn btn-secondary btn-sm" onClick={() => fileRef.current.click()}>
                                 <Upload size={14} /> Replace
                             </button>
-                            <button className="btn btn-danger btn-sm" onClick={deleteResume}>
+                            <button className="btn btn-danger btn-sm" onClick={() => setDeleteModalOpen(true)}>
                                 <Trash2 size={14} /> Delete
                             </button>
                         </div>
@@ -116,6 +127,16 @@ export default function ResumePage() {
 
             <input ref={fileRef} type="file" accept=".pdf,.docx,.doc,.txt" style={{ display: 'none' }}
                 onChange={e => handleFile(e.target.files[0])} />
+
+            <ConfirmModal
+                isOpen={deleteModalOpen}
+                title="Delete Resume"
+                message="Are you sure you want to delete your resume? This action cannot be undone."
+                onConfirm={deleteResume}
+                onCancel={() => setDeleteModalOpen(false)}
+                loading={deleting}
+                isDanger={true}
+            />
         </div>
     )
 }

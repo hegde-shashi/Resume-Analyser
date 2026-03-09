@@ -20,7 +20,7 @@ export default function AuthPage() {
         try {
             if (mode === 'login') {
                 const { data } = await api.post('/login', { email: form.email, password: form.password })
-                login(data.token, data.user_id)
+                login(data.token, data.user_id, data.username)
                 toast.success('Welcome back!')
             } else {
                 await api.post('/register', { username: form.username, email: form.email, password: form.password })

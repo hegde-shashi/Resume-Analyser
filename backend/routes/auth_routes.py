@@ -42,9 +42,10 @@ def login():
     if not bcrypt.check_password_hash(user.password, data["password"]):
         return {"error": "Invalid password"}, 401
 
-    token = create_access_token(identity=user.id)
+    token = create_access_token(identity=str(user.id))
 
     return {
         "token": token,
-        "user_id": user.id
+        "user_id": user.id,
+        "username": user.username
     }

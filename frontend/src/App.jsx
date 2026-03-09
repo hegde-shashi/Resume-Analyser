@@ -22,6 +22,8 @@ const PAGE_TITLES = {
 function AppShell() {
   const { isAuth } = useAuth()
   const [page, setPage] = useState('dashboard')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarHidden, setSidebarHidden] = useState(false)
 
   if (!isAuth) return <AuthPage />
 
@@ -33,14 +35,16 @@ function AppShell() {
   }[page] || Dashboard
 
   return (
-    <div className="app-shell">
-      <Sidebar page={page} setPage={setPage} />
+    <div className={`app-shell page-${page} ${sidebarHidden ? 'sidebar-hidden' : ''}`}>
+      <Sidebar page={page} setPage={setPage} isOpen={sidebarOpen} setIsOpen={setSidebarOpen} hidden={sidebarHidden} setHidden={setSidebarHidden} />
       <div className="main-content">
-        <Topbar pageTitle={PAGE_TITLES[page]} />
+        <Topbar pageTitle={PAGE_TITLES[page]} setSidebarOpen={setSidebarOpen} sidebarHidden={sidebarHidden} setSidebarHidden={setSidebarHidden} />
         <main className="page-body">
-          <PageComponent />
+          <PageComponent setPage={setPage} />
         </main>
       </div>
+      {/* Overlay for mobile sidebar */}
+      {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
     </div>
   )
 }

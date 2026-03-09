@@ -109,7 +109,11 @@ def compare_prompt(resume, job_description):
 
                 evaluation_summary:
 
-                * Explain score for each criteria
+                * Explain score for each criteria 
+                * **Experience Match <score> :** details \n 
+                * **Skill Match <score> :** details \n
+                * **Work / Project Match <score> :** details \n 
+                * **Resume Quality <score> :** details.
 
                 Important Rules:
 
@@ -121,7 +125,7 @@ def compare_prompt(resume, job_description):
             """
 
 
-def mail_prompt(candidate_name, company, role, progress):
+def mail_prompt(candidate_name, job_description, progress):
 
     return f"""
                 You are a professional career assistant helping a candidate manage their job applications.
@@ -129,13 +133,10 @@ def mail_prompt(candidate_name, company, role, progress):
                 Candidate:
                 {candidate_name}
 
-                Company:
-                {company}
+                Job details:
+                {job_description}
 
-                Role:
-                {role}
-
-                Application Stage:
+                Job progress:
                 {progress}
 
                 Write a professional email appropriate for the application stage.
@@ -163,7 +164,7 @@ def mail_prompt(candidate_name, company, role, progress):
             """
 
 
-def cover_letter_prompt(candidate_name, resume_summary, projects, education, company, role, job_description):
+def cover_letter_prompt(candidate_name, resume, job_description):
     return f"""
                 You are an expert career assistant specializing in writing strong cover letters for candidates transitioning into a new field.
 
@@ -176,19 +177,9 @@ def cover_letter_prompt(candidate_name, resume_summary, projects, education, com
                 The candidate is transitioning into the field of Data Science / Machine Learning / AI.
 
                 Candidate Resume Summary:
-                {resume_summary}
-
-                Candidate Projects:
-                {projects}
-
-                Education:
-                {education}
+                {resume}
 
                 Job Information:
-                Company: {company}
-                Role: {role}
-
-                Job Description:
                 {job_description}
 
                 Instructions:
@@ -219,25 +210,39 @@ def cover_letter_prompt(candidate_name, resume_summary, projects, education, com
     """
 
 
-def chatbot_prompt():
-    prompt = ChatPromptTemplate.from_messages([
-        ("system",
-        """
-        You are an AI job assistant.
-        Response Style:
-        - Maximum 400 words
-        - Use bullet points
-        - Focus only on the most important points
+def chat_prompt(resume, job, history, question):
 
-        Resume Context:
-        {context}
+    history_text = ""
 
-        Company: {company}
-        Role: {role}
-        Stage: {progress}
-        """
-        ),
-        ("human","{input}")
-    ])
+    for msg in history:
 
-    return prompt
+        if msg["role"] == "user":
+            history_text += f"User: {msg['content']}\n"
+
+        if msg["role"] == "assistant":
+            history_text += f"Assistant: {msg['content']}\n"
+
+    return f"""
+                You are an AI career assistant helping a candidate with a specific job application.
+
+                Response Style:
+                - Maximum 400 words
+                - Use bullet points wherever required
+                - Focus only on the most important points
+                - If you dont know the answer, politely say you dont know, don't make it up
+                - If the question is unrelated, politely say you can only help related to this job
+                - If no resume is provided, politely say to provide a resume.
+
+                Candidate Resume:
+                {resume}
+
+                Job Information:
+
+                Job Title: {job.job_title}
+                Job Link: {job.job_link}
+                Company: {job.company}
+                Location: {job.location}
+                Application Progress: {job.progress}
+
+                User Question: {question}
+            """

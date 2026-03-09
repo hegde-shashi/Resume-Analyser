@@ -7,6 +7,8 @@ from backend.routes.job_routes import job_bp
 from backend.routes.resume_routes import resume_bp
 from backend.routes.analysis_routes import analysis_bp
 from backend.routes.settings_routes import settings_bp
+from backend.routes.chat_routes import chat_bp
+from backend.routes.mail_routes import mail_bp
 
 app = Flask(__name__)
 
@@ -26,6 +28,8 @@ app.register_blueprint(job_bp)
 app.register_blueprint(resume_bp)
 app.register_blueprint(analysis_bp)
 app.register_blueprint(settings_bp)
+app.register_blueprint(chat_bp)
+app.register_blueprint(mail_bp)
 
 if __name__ == "__main__":
     app.run(debug=True, port=5001)
