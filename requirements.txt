@@ -1,5 +1,5 @@
 # ── Web Framework ──────────────────────────────────────────────────
-Flask==3.1.0
+Flask==3.0.3
 Flask-SQLAlchemy==3.1.1
 Flask-JWT-Extended==4.7.1
 Flask-Bcrypt==1.0.1
@@ -10,7 +10,7 @@ gunicorn==23.0.0
 
 # ── Database ───────────────────────────────────────────────────────
 psycopg2-binary==2.9.11
-SQLAlchemy==2.0.36
+SQLAlchemy==2.0.34
 
 # ── LangChain core stack ───────────────────────────────────────────
 langchain==1.2.10
@@ -43,7 +43,7 @@ playwright==1.58.0
 beautifulsoup4==4.12.3
 
 # ── Environment & Config ───────────────────────────────────────────
-python-dotenv==1.0.1
+python-dotenv==0.21.0
 
 # ── Utilities ──────────────────────────────────────────────────────
 requests==2.32.5
