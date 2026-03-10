@@ -1,6 +1,7 @@
 from flask import Flask
 from backend.database.db import db
-from backend.config import DB_USER, DB_HOST, DB_PASSWORD, DB_NAME, JWT_SECRET_KEY
+from backend.config import DB_USER, DB_HOST, DB_PASSWORD, DB_NAME, JWT_SECRET_KEY, PERSISTENT_DIR
+import os
 from flask_jwt_extended import JWTManager
 from backend.routes.auth_routes import auth_bp
 from backend.routes.job_routes import job_bp
@@ -12,7 +13,16 @@ from backend.routes.mail_routes import mail_bp
 
 app = Flask(__name__)
 
-app.config["SQLALCHEMY_DATABASE_URI"] = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
+# Intelligent Database Configuration
+if DB_HOST and DB_USER and DB_PASSWORD and DB_NAME:
+    # Use PostgreSQL if credentials are provided
+    app.config["SQLALCHEMY_DATABASE_URI"] = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
+else:
+    # Fallback to local SQLite inside the persistent file storage
+    sqlite_path = os.path.join(PERSISTENT_DIR, "database.sqlite")
+    # For Windows/Linux pathing, use absolute path format required by SQLAlchemy
+    app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.abspath(sqlite_path)}"
+
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
 
