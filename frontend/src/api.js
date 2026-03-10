@@ -2,8 +2,15 @@ import axios from 'axios'
 
 // If deployed to Azure with a separate frontend/backend, the API url must be passed via env variables
 // NOTE: `process.env.REACT_APP_API_URL` is replaced at BUILD time by React. It will not work if you type it in the browser console.
+let apiUrl = '';
+try {
+    apiUrl = process.env.REACT_APP_API_URL || '';
+} catch (error) {
+    console.warn("API URL variable was missing during build.");
+}
+
 const api = axios.create({
-    baseURL: process.env.REACT_APP_API_URL || ''
+    baseURL: apiUrl
 })
 
 api.interceptors.request.use((config) => {

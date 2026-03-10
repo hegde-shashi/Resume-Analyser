@@ -62,7 +62,11 @@ export default function ChatPage() {
 
         try {
             const token = localStorage.getItem('token')
-            const baseUrl = process.env.REACT_APP_API_URL || ''
+            let baseUrl = '';
+            try {
+                baseUrl = process.env.REACT_APP_API_URL || '';
+            } catch (e) { }
+
             const res = await fetch(`${baseUrl}/chat`, {
                 method: 'POST',
                 headers: {
