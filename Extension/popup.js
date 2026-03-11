@@ -1,5 +1,7 @@
-const API = "<API_URL>";
+const API = "<BACKEND_API_KEY>";
 const MODEL_STORAGE_KEY = "selectedModel";
+const DEFAULT_API_MODE = "default";
+const USER_API_MODE = "user";
 
 let currentJob = null;
 let currentJobId = null; // DB row id from Jobs.id (required by /analyze_job)
@@ -7,6 +9,11 @@ let activeJobLink = "";
 let jobExistsInDatabase = false;
 let analysisReady = false;
 let isBusy = false;
+let llmMode = DEFAULT_API_MODE;
+let activeCustomApiKey = "";
+let customValidationPending = false;
+let isCurrentPageBlocked = false;
+let isCurrentTabSupported = false;
 
 window.onload = () => {
     const token = getStoredToken();
@@ -27,7 +34,8 @@ function showApp() {
     document.getElementById("loginView").style.display = "none";
     document.getElementById("appView").style.display = "block";
     clearStatus();
-    loadModels();
+    document.getElementById("apiModeSelect").value = llmMode;
+    applyApiModeSelection();
     initializePopupState();
 }
 
@@ -61,6 +69,34 @@ function extractAuthToken(data) {
 
 function getSelectedModel() {
     return document.getElementById("modelSelect").value || "";
+}
+
+function getApiModeSelection() {
+    return document.getElementById("apiModeSelect").value || DEFAULT_API_MODE;
+}
+
+function getLlmRequestConfig() {
+    if (llmMode === USER_API_MODE) {
+        return {
+            mode: USER_API_MODE,
+            api_key: activeCustomApiKey
+        };
+    }
+
+    return {
+        mode: DEFAULT_API_MODE
+    };
+}
+
+function isLlmReady() {
+    return llmMode !== USER_API_MODE || Boolean(activeCustomApiKey);
+}
+
+function clearJobAndAnalysisViews() {
+    document.getElementById("jobDetails").innerHTML = "";
+    document.getElementById("analysis").innerHTML = "";
+    setVisible("jobDetails", false);
+    setVisible("analysis", false);
 }
 
 async function parseApiResponse(res) {
@@ -107,6 +143,41 @@ function normalizeJobLink(link) {
     return link.trim().replace(/\/$/, "");
 }
 
+function isIpAddressHost(hostname) {
+    if (!hostname || typeof hostname !== "string") {
+        return false;
+    }
+
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(hostname)) {
+        return true;
+    }
+
+    const ipv6Host = hostname.replace(/^\[|\]$/g, "");
+    return /^[0-9a-fA-F:]+$/.test(ipv6Host) && ipv6Host.includes(":");
+}
+
+function isBlockedPageUrl(rawUrl) {
+    if (!rawUrl || typeof rawUrl !== "string") {
+        return false;
+    }
+
+    try {
+        const parsed = new URL(rawUrl);
+        const hostname = (parsed.hostname || "").toLowerCase();
+        const pathname = parsed.pathname || "";
+
+        const isGoogleSearch = (hostname === "google.com" || hostname === "www.google.com")
+            && pathname.startsWith("/search");
+        const isBlockedAppDomain = hostname === "yellow-plant-053b33600.4.azurestaticapps.net";
+        const isLocalhost = hostname === "localhost" || hostname.endsWith(".localhost");
+        const isIpHost = isIpAddressHost(hostname);
+
+        return isGoogleSearch || isBlockedAppDomain || isLocalhost || isIpHost;
+    } catch (_error) {
+        return false;
+    }
+}
+
 function normalizeJobPayload(payload) {
     const source = payload && typeof payload === "object"
         ? (payload.job_data && typeof payload.job_data === "object" ? payload.job_data : payload)
@@ -149,6 +220,37 @@ function setModelVisibility(isVisible) {
     document.querySelector('label[for="modelSelect"]').style.display = display;
     document.getElementById("modelSelect").style.display = display;
     document.getElementById("modelError").style.display = display;
+}
+
+function setApiModeControlVisibility(isVisible) {
+    const display = isVisible ? "block" : "none";
+    document.querySelector('label[for="apiModeSelect"]').style.display = display;
+    document.getElementById("apiModeSelect").style.display = display;
+    if (!isVisible) {
+        document.getElementById("apiKeyError").style.display = "none";
+    }
+    if (!isVisible) {
+        document.getElementById("customApiKey").style.display = "none";
+        document.getElementById("validateApiKey").style.display = "none";
+    } else {
+        const shouldShowCustomControls = getApiModeSelection() === USER_API_MODE && customValidationPending;
+        setApiModeVisibility(shouldShowCustomControls);
+    }
+}
+
+function setApiModeVisibility(isUserMode) {
+    document.getElementById("customApiKey").style.display = isUserMode ? "block" : "none";
+    document.getElementById("validateApiKey").style.display = isUserMode ? "block" : "none";
+}
+
+function setApiKeyError(message = "") {
+    const node = document.getElementById("apiKeyError");
+    node.innerText = message;
+    node.style.display = message ? "block" : "none";
+}
+
+function setModelSelectEnabled(enabled) {
+    document.getElementById("modelSelect").disabled = !enabled;
 }
 
 function setBusyState(flag, message = "") {
@@ -286,16 +388,21 @@ function renderModelOptions(models) {
     modelError.innerText = "";
 }
 
-async function loadModels() {
+async function loadModels({ mode = llmMode, apiKey = activeCustomApiKey } = {}) {
     const modelError = document.getElementById("modelError");
+    modelError.innerText = "";
+    setModelSelectEnabled(false);
 
     try {
+        const requestBody = mode === USER_API_MODE
+            ? { mode, api_key: apiKey }
+            : { mode: DEFAULT_API_MODE };
         const res = await fetch(`${API}/check_models`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({})
+            body: JSON.stringify(requestBody)
         });
         const { data: payload } = await parseApiResponse(res);
 
@@ -304,10 +411,34 @@ async function loadModels() {
         }
 
         renderModelOptions(extractModels(payload));
+        setModelSelectEnabled(true);
+        return true;
     } catch (error) {
         renderModelOptions([]);
         modelError.innerText = error.message || "Failed to load models";
+        setModelSelectEnabled(mode !== USER_API_MODE);
+        return false;
     }
+}
+
+async function applyApiModeSelection() {
+    const selectedMode = getApiModeSelection();
+    setApiKeyError("");
+
+    if (selectedMode === DEFAULT_API_MODE) {
+        customValidationPending = false;
+        activeCustomApiKey = "";
+        llmMode = DEFAULT_API_MODE;
+        document.getElementById("customApiKey").value = "";
+        setApiModeVisibility(false);
+        await loadModels({ mode: DEFAULT_API_MODE });
+        updateActionButtons();
+        return;
+    }
+
+    customValidationPending = true;
+    setApiModeVisibility(true);
+    updateActionButtons();
 }
 
 function displayJob(job) {
@@ -367,15 +498,28 @@ function renderAnalysisResult(result) {
 function updateActionButtons() {
     const sendButton = document.getElementById("send");
     const analyseButton = document.getElementById("analyse");
+    const shouldHideControls = !isCurrentTabSupported || isCurrentPageBlocked;
 
-    if (analysisReady) {
+    if (analysisReady || shouldHideControls) {
         setModelVisibility(false);
+    } else {
+        setModelVisibility(true);
+    }
+
+    if (shouldHideControls) {
+        setApiModeControlVisibility(false);
         sendButton.style.display = "none";
         analyseButton.style.display = "none";
         return;
-    } else {
-        setModelVisibility(true);
-        sendButton.style.display = "block";
+    }
+
+    setApiModeControlVisibility(true);
+    sendButton.style.display = "block";
+
+    if (customValidationPending) {
+        sendButton.style.display = "none";
+        analyseButton.style.display = "none";
+        return;
     }
 
     if (!activeJobLink) {
@@ -387,12 +531,12 @@ function updateActionButtons() {
         sendButton.disabled = true;
         sendButton.classList.add("disabled");
         sendButton.textContent = "Page Already Saved";
-        analyseButton.style.display = "block";
+        analyseButton.style.display = currentJobId ? "block" : "none";
     } else {
         sendButton.disabled = false;
         sendButton.classList.remove("disabled");
         sendButton.textContent = "Send Page To Analyzer";
-        analyseButton.style.display = currentJob ? "block" : "none";
+        analyseButton.style.display = "none";
     }
 
     analyseButton.disabled = false;
@@ -400,6 +544,11 @@ function updateActionButtons() {
     analyseButton.textContent = "Analyse Resume Match";
 
     if (isBusy) {
+        sendButton.disabled = true;
+        analyseButton.disabled = true;
+    }
+
+    if (!isLlmReady()) {
         sendButton.disabled = true;
         analyseButton.disabled = true;
     }
@@ -442,6 +591,10 @@ async function getPageData(tab) {
 
     if (!isSupportedUrl) {
         throw new Error("Open a regular website tab (http/https) and try again");
+    }
+
+    if (isBlockedPageUrl(url)) {
+        throw new Error("This page is excluded from analysis. Open a supported job page.");
     }
 
     try {
@@ -538,19 +691,27 @@ async function initializePopupState() {
     activeJobLink = "";
     jobExistsInDatabase = false;
     analysisReady = false;
-    document.getElementById("jobDetails").innerHTML = "";
-    document.getElementById("analysis").innerHTML = "";
-    setVisible("jobDetails", false);
-    setVisible("analysis", false);
+    isCurrentPageBlocked = false;
+    isCurrentTabSupported = false;
+    clearJobAndAnalysisViews();
 
     const tab = await getActiveTab();
     const currentUrl = normalizeJobLink(tab && tab.url ? tab.url : "");
 
     activeJobLink = currentUrl;
+    isCurrentTabSupported = Boolean(
+        activeJobLink && (activeJobLink.startsWith("http://") || activeJobLink.startsWith("https://"))
+    );
+    isCurrentPageBlocked = isBlockedPageUrl(activeJobLink);
     updateActionButtons();
 
-    if (!activeJobLink || (!activeJobLink.startsWith("http://") && !activeJobLink.startsWith("https://"))) {
+    if (!isCurrentTabSupported) {
         setStatus("Open a regular website tab to continue.", "warn");
+        return;
+    }
+
+    if (isCurrentPageBlocked) {
+        setStatus("This page is excluded from analysis. Open a supported job page.", "warn");
         return;
     }
 
@@ -631,6 +792,10 @@ async function fetchExistingJobForCurrentUrl() {
 async function runAnalysis({ silent = false } = {}) {
     setBusyState(true, "Analysing resume match...");
     try {
+        if (!isLlmReady()) {
+            throw new Error("Validate custom API key before analysis.");
+        }
+
         const token = getStoredToken();
         if (!token) {
             localStorage.removeItem("token");
@@ -649,7 +814,8 @@ async function runAnalysis({ silent = false } = {}) {
         const model = getSelectedModel();
         const body = JSON.stringify({
             model,
-            job_id: currentJobId
+            job_id: currentJobId,
+            ...getLlmRequestConfig()
         });
 
         console.log("Sending analysis request with payload:", { model, job_id: currentJobId, body });
@@ -746,6 +912,53 @@ document.getElementById("modelSelect").onchange = (event) => {
     localStorage.setItem(MODEL_STORAGE_KEY, event.target.value || "");
 };
 
+document.getElementById("apiModeSelect").onchange = async () => {
+    if (isBusy) {
+        return;
+    }
+
+    clearStatus();
+    await applyApiModeSelection();
+};
+
+document.getElementById("validateApiKey").onclick = async () => {
+    if (isBusy) {
+        return;
+    }
+
+    const keyInput = document.getElementById("customApiKey");
+    const enteredKey = (keyInput.value || "").trim();
+
+    if (!enteredKey) {
+        setApiKeyError("");
+        return;
+    }
+
+    setApiKeyError("");
+    clearStatus();
+    setBusyState(true, "Validating API key...");
+
+    try {
+        const ok = await loadModels({ mode: USER_API_MODE, apiKey: enteredKey });
+        if (!ok) {
+            customValidationPending = true;
+            setApiModeVisibility(true);
+            setApiKeyError("");
+            return;
+        }
+
+        llmMode = USER_API_MODE;
+        activeCustomApiKey = enteredKey;
+        customValidationPending = false;
+        setApiModeVisibility(false);
+        setApiKeyError("");
+        setStatus("Custom API key validated. Models loaded.", "success");
+    } finally {
+        setBusyState(false);
+        updateActionButtons();
+    }
+};
+
 document.getElementById("loginBtn").onclick = async () => {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
@@ -792,16 +1005,28 @@ document.getElementById("send").onclick = async () => {
     setBusyState(true, "Parsing job description...");
 
     try {
+        if (!isLlmReady()) {
+            throw new Error("Validate custom API key before sending the page.");
+        }
+
         const tab = await getActiveTab();
         const data = await getPageData(tab);
         const model = getSelectedModel();
 
         activeJobLink = normalizeJobLink(data.url || tab.url || "");
+        isCurrentTabSupported = Boolean(
+            activeJobLink && (activeJobLink.startsWith("http://") || activeJobLink.startsWith("https://"))
+        );
+        isCurrentPageBlocked = isBlockedPageUrl(activeJobLink);
+        if (isCurrentPageBlocked) {
+            throw new Error("This page is excluded from analysis. Open a supported job page.");
+        }
 
         const parsePayload = {
             job_description: data.text || "",
             job_link: activeJobLink,
             model,
+            ...getLlmRequestConfig(),
             progress: "Checking"
         };
 
@@ -829,22 +1054,34 @@ document.getElementById("send").onclick = async () => {
         const job = normalizeJobPayload(jobPayload);
         job.job_link = activeJobLink;
         job.progress = "Checking";
-        analysisReady = false;
-        displayJob(job);
 
         const filledCount = countFilledCoreFields(job);
         if (filledCount > 3) {
+            analysisReady = false;
+            currentJob = job;
+            displayJob(job);
             await saveCurrentJob({ silent: true });
             await fetchExistingJobForCurrentUrl();
             setStatus("Page parsed and auto-saved.", "success");
         } else {
-            setStatus("Page parsed. Waiting for more complete fields before auto-save.", "warn");
+            currentJob = null;
+            currentJobId = null;
+            jobExistsInDatabase = false;
+            analysisReady = false;
+            clearJobAndAnalysisViews();
+            setStatus("Page was not saved because parsed data was incomplete.", "warn");
             updateActionButtons();
         }
-        setBusyState(false);
     } catch (error) {
+        currentJob = null;
+        currentJobId = null;
+        jobExistsInDatabase = false;
+        analysisReady = false;
+        clearJobAndAnalysisViews();
         loading.innerText = error.message;
         console.error("Send flow failed:", error);
+        setStatus(error.message || "Failed to send page data.", "warn");
+    } finally {
         setBusyState(false);
     }
 };
@@ -859,9 +1096,8 @@ document.getElementById("analyse").onclick = async () => {
         }
         await runAnalysis();
     } catch (error) {
-        document.getElementById("analysis").innerText =
-            error.message || "Analysis failed";
-        setVisible("analysis", true);
+        setStatus(error.message || "Analysis failed", "warn");
+        setVisible("analysis", false);
     }
 };
 

@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>Resume Analyzer</title>
+    <title>Maarga</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -37,9 +37,29 @@
 
 <!-- MAIN EXTENSION VIEW -->
 <div id="appView" class="panel" style="display:none;">
-
-    <h2>Resume Analyzer</h2>
+    <div class="logo">
+        <img id="userAvatar" class="avatar" src="logo.png" alt="Maarga" width="40%", height="30">
+        <div style="font-size: 9px; margin-bottom: 10px;">Optimize your career path</div>
+    </div>
     <p id="statusMessage" class="status" style="display:none;"></p>
+
+    <label for="apiModeSelect">API Key Mode</label>
+    <select id="apiModeSelect">
+        <option value="default">Default</option>
+        <option value="user">Custom</option>
+    </select>
+
+    <input
+        id="customApiKey"
+        type="password"
+        placeholder="Enter custom Google API key"
+        style="display:none;"
+    />
+
+    <button id="validateApiKey" style="display:none;">
+        Validate API Key
+    </button>
+    <p id="apiKeyError"></p>
 
     <label for="modelSelect">Model</label>
     <select id="modelSelect">
@@ -63,10 +83,6 @@
 
     <!-- Job Details -->
     <div id="jobDetails" style="display:none;"></div>
-
-
-    <hr>
-
 
     <!-- Analyse Section -->
     <button id="analyse" style="display:none;">
