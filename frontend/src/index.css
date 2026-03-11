@@ -887,6 +887,21 @@ select {
   color: #fff;
 }
 
+.chat-msg-bubble a {
+  color: var(--accent);
+  text-decoration: underline;
+  font-weight: 500;
+  transition: opacity var(--transition);
+}
+
+.chat-msg-bubble a:hover {
+  opacity: 0.8;
+}
+
+.chat-msg.user .chat-msg-bubble a {
+  color: #fff;
+}
+
 .chat-center-wrapper {
   max-width: 80%;
   margin: 0 auto;

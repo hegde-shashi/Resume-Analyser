@@ -19,13 +19,20 @@ export default function Topbar({ pageTitle, setSidebarOpen, sidebarHidden, setSi
                         <Menu size={20} />
                     </button>
                     {sidebarHidden ? (
-                        <button
-                            className="btn btn-ghost btn-icon desktop-only"
-                            onClick={() => setSidebarHidden(false)}
-                            title="Show menu"
-                        >
-                            <PanelLeftOpen size={20} />
-                        </button>
+                        <>
+                            <button
+                                className="btn btn-ghost btn-icon desktop-only"
+                                onClick={() => setSidebarHidden(false)}
+                                title="Show menu"
+                            >
+                                <PanelLeftOpen size={20} />
+                            </button>
+                            <a href="/dashboard">
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', paddingTop: '0.5rem', justifyContent: 'center' }}>
+                                    <Logo size={75} />
+                                </span>
+                            </a>
+                        </>
                     ) : (
                         <button
                             className="btn btn-ghost btn-icon desktop-only"
@@ -38,11 +45,6 @@ export default function Topbar({ pageTitle, setSidebarOpen, sidebarHidden, setSi
                     {/* <span className="topbar-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {pageTitle}
                     </span> */}
-                    <a href="/dashboard">
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', paddingTop: '0.5rem', justifyContent: 'center' }}>
-                            <Logo size={75} />
-                        </span>
-                    </a>
                 </div>
 
 

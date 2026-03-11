@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { Send, Bot } from 'lucide-react'
 import { useSettings } from '../context/SettingsContext'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 export default function ChatPage() {
     const { llmPayload } = useSettings()
@@ -220,16 +221,26 @@ export default function ChatPage() {
                                         <div className="chat-msg-bubble" style={m.role === 'user' ? { whiteSpace: 'pre-wrap' } : {}}>
                                             {m.role === 'assistant' ? (
                                                 <ReactMarkdown
+                                                    remarkPlugins={[remarkGfm]}
                                                     components={{
                                                         p: ({ node, ...props }) => <p style={{ margin: '0 0 0.5rem 0', '&:last-child': { margin: 0 } }} {...props} />,
                                                         ul: ({ node, ...props }) => <ul style={{ margin: '0 0 0.5rem 0', paddingLeft: '1.2rem' }} {...props} />,
-                                                        li: ({ node, ...props }) => <li style={{ marginBottom: '0.2rem' }} {...props} />
+                                                        li: ({ node, ...props }) => <li style={{ marginBottom: '0.2rem' }} {...props} />,
+                                                        a: ({ node, children, ...props }) => <a target="_blank" rel="noopener noreferrer" {...props}>{children}</a>
                                                     }}
                                                 >
                                                     {m.text}
                                                 </ReactMarkdown>
                                             ) : (
-                                                m.text
+                                                <ReactMarkdown 
+                                                    remarkPlugins={[remarkGfm]}
+                                                    components={{
+                                                        p: ({ node, ...props }) => <p style={{ margin: 0 }} {...props} />,
+                                                        a: ({ node, children, ...props }) => <a target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }} {...props}>{children}</a>
+                                                    }}
+                                                >
+                                                    {m.text}
+                                                </ReactMarkdown>
                                             )}
                                         </div>
                                     </div>
