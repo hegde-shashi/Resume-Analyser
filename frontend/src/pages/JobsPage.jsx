@@ -357,6 +357,18 @@ export default function JobsPage() {
             setShowAdd(true)
             sessionStorage.removeItem('openAddJob')
         }
+
+        // 1. Refresh when window gains focus (user comes back from extension)
+        const onFocus = () => load()
+        window.addEventListener('focus', onFocus)
+
+        // 2. Refresh every 30 seconds in the background
+        const interval = setInterval(load, 30000)
+
+        return () => {
+            window.removeEventListener('focus', onFocus)
+            clearInterval(interval)
+        }
     }, [])
 
     const remove = (id) => setJobs(js => js.filter(j => j.id !== id))

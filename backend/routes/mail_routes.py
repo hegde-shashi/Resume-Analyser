@@ -38,9 +38,12 @@ def generate_mail():
     )
 
     result = llm.invoke(prompt)
+    content = result.content
+    if isinstance(content, list):
+        content = " ".join([str(p.get("text", p)) if isinstance(p, dict) else str(p) for p in content])
 
     return jsonify({
-        "mail": result.content
+        "mail": content
     })
 
 @mail_bp.route("/generate_cover_letter", methods=["POST"])
@@ -73,7 +76,10 @@ def generate_cover_letter():
     )
 
     result = llm.invoke(prompt)
+    cl_content = result.content
+    if isinstance(cl_content, list):
+        cl_content = " ".join([str(p.get("text", p)) if isinstance(p, dict) else str(p) for p in cl_content])
 
     return jsonify({
-        "cover_letter": result.content
+        "cover_letter": cl_content
     })

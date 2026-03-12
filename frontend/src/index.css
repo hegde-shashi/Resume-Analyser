@@ -429,8 +429,7 @@ select {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.02em;
 }
 
 .form-input,
@@ -968,9 +967,9 @@ select {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(4px);
-  z-index: 200;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  z-index: 2000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1206,17 +1205,35 @@ select {
 
   .sidebar {
     transform: translateX(-100%);
-    width: 260px !important;
-    z-index: 1000;
+    width: 280px !important;
+    z-index: 2000;
     height: 100% !important;
     display: flex !important;
     flex-direction: column !important;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
+                visibility 0s linear 0.4s !important;
+    visibility: hidden;
   }
 
   .sidebar.open {
     transform: translateX(0);
-    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.4);
+    box-shadow: 15px 0 35px rgba(0, 0, 0, 0.4);
+    visibility: visible;
+    transition-delay: 0s !important;
   }
+
+  /* Tighter staggered entry */
+  .sidebar.open .sidebar-nav > *,
+  .sidebar.open .sidebar-footer {
+    animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .sidebar.open .sidebar-nav > *:nth-child(1) { animation-delay: 0.05s; }
+  .sidebar.open .sidebar-nav > *:nth-child(2) { animation-delay: 0.10s; }
+  .sidebar.open .sidebar-nav > *:nth-child(3) { animation-delay: 0.15s; }
+  .sidebar.open .sidebar-nav > *:nth-child(4) { animation-delay: 0.20s; }
+  .sidebar.open .sidebar-nav > *:nth-child(5) { animation-delay: 0.25s; }
+  .sidebar.open .sidebar-footer { animation-delay: 0.30s; }
 
   .sidebar-logo {
     padding: 1.25rem 1rem !important;
@@ -1244,9 +1261,17 @@ select {
   .sidebar-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(2px);
-    z-index: 999;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 1999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  
+  .sidebar-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
   }
 
   .topbar {
@@ -1311,13 +1336,14 @@ select {
   }
 
   .modal-footer {
-    flex-direction: row !important;
-    gap: 0.5rem !important;
+    flex-direction: column-reverse !important;
+    gap: 0.75rem !important;
   }
 
   .modal-footer button {
-    flex: 1;
+    width: 100% !important;
     margin: 0 !important;
+    justify-content: center !important;
   }
 
   /* Resume Page */
@@ -1499,6 +1525,100 @@ select {
   }
 
   to {
+    opacity: 1;
+  }
+}
+
+/* ── PROFILE MENU ────────────────────────────────────────────────── */
+.profile-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.profile-trigger {
+  margin-top: 0.5rem;
+  font-weight: 600 !important;
+  color: var(--text-primary) !important;
+}
+
+.profile-trigger.active {
+  background: var(--bg-hover);
+}
+
+.profile-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 1rem;
+  margin-top: 2px;
+  animation: slideDown 0.2s ease-out;
+}
+
+.sub-item {
+  font-size: 0.8rem !important;
+  opacity: 0.8;
+  padding: 0.5rem 0.75rem !important;
+}
+
+.sub-item:hover {
+  opacity: 1;
+  background: var(--bg-hover) !important;
+}
+
+.sub-item.delete-action {
+  color: var(--danger) !important;
+}
+
+.sub-item.delete-action:hover {
+  background: var(--danger-soft) !important;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
+}
+
+.btn-xs {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.4rem;
+}
+@keyframes slideInRight {
+  from {
+    transform: translateX(-40px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
     opacity: 1;
   }
 }

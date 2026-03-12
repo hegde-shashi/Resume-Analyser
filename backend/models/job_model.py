@@ -5,7 +5,7 @@ class Jobs(db.Model):
     __tablename__ = "jobs"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     job_link = db.Column(db.Text)
     job_title = db.Column(db.String(200))
     job_id = db.Column(db.String(30))

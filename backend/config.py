@@ -9,6 +9,7 @@ DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_NAME = os.getenv("DB_NAME")
 JWT_SECRET_KEY = os.getenv("JWT_SECRET")
+FRONTEND_URL = os.getenv("FRONTEND_URL")
 
 # Define persistent storage location
 # Azure App Service sets WEBSITE_SITE_NAME automatically. /home is the persistent network share.

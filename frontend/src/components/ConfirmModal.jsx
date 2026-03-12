@@ -1,7 +1,17 @@
 import React from 'react'
 import { createPortal } from 'react-dom'
 
-export default function ConfirmModal({ isOpen, title, message, onConfirm, onCancel, confirmText = 'Delete', loading = false, isDanger = true }) {
+export default function ConfirmModal({ 
+    isOpen, 
+    title, 
+    message, 
+    onConfirm, 
+    onCancel, 
+    confirmText = 'Delete', 
+    loading = false, 
+    isDanger = true,
+    confirmDisabled = false
+}) {
     if (!isOpen) return null
 
     return createPortal(
@@ -18,7 +28,11 @@ export default function ConfirmModal({ isOpen, title, message, onConfirm, onCanc
                     <button className="btn btn-secondary" onClick={onCancel} disabled={loading}>
                         Cancel
                     </button>
-                    <button className={`btn ${isDanger ? 'btn-danger' : 'btn-primary'}`} onClick={onConfirm} disabled={loading}>
+                    <button 
+                        className={`btn ${isDanger ? 'btn-danger' : 'btn-primary'}`} 
+                        onClick={onConfirm} 
+                        disabled={loading || confirmDisabled}
+                    >
                         {loading ? <span className="spinner" /> : confirmText}
                     </button>
                 </div>

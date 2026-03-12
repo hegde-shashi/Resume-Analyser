@@ -11,44 +11,55 @@ export default function Topbar({ pageTitle, setSidebarOpen, sidebarHidden, setSi
     return (
         <>
             <header className="topbar">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', overflow: 'hidden' }}>
+                {/* Mobile: Left side (Menu) */}
+                <div className="mobile-only" style={{ width: '40px' }}>
                     <button
-                        className="btn btn-ghost btn-icon mobile-only"
+                        className="btn btn-ghost btn-icon"
                         onClick={() => setSidebarOpen(true)}
                     >
                         <Menu size={20} />
                     </button>
-                    {sidebarHidden ? (
-                        <>
-                            <button
-                                className="btn btn-ghost btn-icon desktop-only"
-                                onClick={() => setSidebarHidden(false)}
-                                title="Show menu"
-                            >
-                                <PanelLeftOpen size={20} />
-                            </button>
-                            <a href="/dashboard">
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', paddingTop: '0.5rem', justifyContent: 'center' }}>
-                                    <Logo size={75} />
-                                </span>
-                            </a>
-                        </>
-                    ) : (
-                        <button
-                            className="btn btn-ghost btn-icon desktop-only"
-                            onClick={() => setSidebarHidden(true)}
-                            title="Hide menu"
-                        >
-                            <PanelLeftClose size={20} />
-                        </button>
-                    )}
-                    {/* <span className="topbar-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {pageTitle}
-                    </span> */}
                 </div>
 
+                {/* Mobile: Center (Logo) / Desktop: Left */}
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.75rem', overflow: 'hidden' }}>
+                    <div className="desktop-only" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        {sidebarHidden ? (
+                            <>
+                                <button
+                                    className="btn btn-ghost btn-icon"
+                                    onClick={() => setSidebarHidden(false)}
+                                    title="Show menu"
+                                >
+                                    <PanelLeftOpen size={20} />
+                                </button>
+                                <div style={{ paddingTop: '0.5rem' }}>
+                                    <a href="/dashboard">
+                                        <Logo size={75} />
+                                    </a>
+                                </div>
+                            </>
+                        ) : (
+                            <button
+                                className="btn btn-ghost btn-icon"
+                                onClick={() => setSidebarHidden(true)}
+                                title="Hide menu"
+                            >
+                                <PanelLeftClose size={20} />
+                            </button>
+                        )}
+                    </div>
+                    
+                    {/* Centered Logo on Mobile */}
+                    <div className="mobile-only" style={{ paddingTop: '0.5rem' }}>
+                        <a href="/dashboard">
+                            <Logo size={85} />
+                        </a>
+                    </div>
+                </div>
 
-                <div className="topbar-actions">
+                {/* Right Area (Theme, etc) */}
+                <div className="topbar-actions" style={{ width: 'auto', minWidth: '40px', justifyContent: 'flex-end' }}>
                     <div className="desktop-only" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <ModelSelector />
                         <div style={{ width: 1, height: 20, background: 'var(--border)' }} />

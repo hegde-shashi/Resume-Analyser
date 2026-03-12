@@ -18,7 +18,7 @@ export default function Dashboard({ setPage }) {
     const [resume, setResume] = useState(null)
     const [loading, setLoading] = useState(true)
 
-    useEffect(() => {
+    const loadData = () => {
         Promise.all([
             api.get('/get_jobs'),
             api.get('/get_resume'),
@@ -26,6 +26,22 @@ export default function Dashboard({ setPage }) {
             setJobs(j.data)
             setResume(r.data)
         }).finally(() => setLoading(false))
+    }
+
+    useEffect(() => {
+        loadData()
+
+        // 1. Refresh when window gains focus (user comes back from extension)
+        const onFocus = () => loadData()
+        window.addEventListener('focus', onFocus)
+
+        // 2. Refresh every 30 seconds in the background
+        const interval = setInterval(loadData, 30000)
+
+        return () => {
+            window.removeEventListener('focus', onFocus)
+            clearInterval(interval)
+        }
     }, [])
 
     const counts = jobs.reduce((acc, j) => {

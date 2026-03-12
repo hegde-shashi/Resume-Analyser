@@ -22,9 +22,15 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
     (r) => r,
     (err) => {
-        if (err.response?.status === 401 || err.response?.status === 422) {
+        // Only clear token and reload if it's an authentication error AND we're NOT on the login page
+        // This prevents the page from reloading instantly when a user types the wrong password, 
+        // allowing the "Invalid password" toast to actually show up.
+        const isAuthPage = window.location.pathname === '/' || window.location.pathname === '/auth';
+
+        if ((err.response?.status === 401 || err.response?.status === 422) && !isAuthPage) {
             localStorage.removeItem('token')
             localStorage.removeItem('user_id')
+            localStorage.removeItem('username')
             window.location.reload()
         }
         return Promise.reject(err)

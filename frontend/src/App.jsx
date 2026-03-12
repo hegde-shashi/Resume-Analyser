@@ -29,7 +29,9 @@ function AppShell() {
     localStorage.setItem('lastPage', page)
   }, [page])
 
-  if (!isAuth) return <AuthPage />
+  const isResetPath = window.location.pathname.startsWith('/reset-password/')
+  
+  if (!isAuth || isResetPath) return <AuthPage />
 
   const PageComponent = {
     dashboard: Dashboard,
@@ -48,7 +50,7 @@ function AppShell() {
         </main>
       </div>
       {/* Overlay for mobile sidebar */}
-      {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
+      <div className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`} onClick={() => setSidebarOpen(false)} />
     </div>
   )
 }

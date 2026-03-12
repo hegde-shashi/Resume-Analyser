@@ -22,11 +22,29 @@ JOB_FIELDS = {
 
 def parse_llm_response(text):
     """Try to parse JSON from LLM response."""
+    # Ensure we are working with a string
+    if isinstance(text, list):
+        # Join parts if the LLM returned multiple content blocks
+        text = " ".join([str(p.get("text", p)) if isinstance(p, dict) else str(p) for p in text])
+    
+    if not isinstance(text, str):
+        text = str(text)
+
     try:
-        return json.loads(text)
+        # 1. Try direct JSON parse
+        return json.loads(text.strip())
     except Exception:
-        match = re.search(r"\{.*\}", text, re.DOTALL)
-        return json.loads(match.group()) if match else {}
+        try:
+            # 2. Try cleaning markdown markers
+            cleaned = text.replace("```json", "").replace("```", "").strip()
+            return json.loads(cleaned)
+        except Exception:
+            try:
+                # 3. Last resort: regex search for the first { } block
+                match = re.search(r"\{.*\}", text, re.DOTALL)
+                return json.loads(match.group()) if match else {}
+            except Exception:
+                return {}
 
 
 @job_bp.route('/parse_job', methods=['POST'])

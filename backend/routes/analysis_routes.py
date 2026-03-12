@@ -66,10 +66,13 @@ def analyze_job():
 
     try:
         # The LLM should return a JSON string, let's parse it
-        import re
         raw_content = answer.content
-        match = re.search(r'\{[\s\S]*\}', raw_content)
-        parsed = json.loads(match.group(0)) if match else json.loads(raw_content)
+        if isinstance(raw_content, list):
+            raw_content = " ".join([str(p.get("text", p)) if isinstance(p, dict) else str(p) for p in raw_content])
+            
+        import re
+        match = re.search(r'\{[\s\S]*\}', str(raw_content))
+        parsed = json.loads(match.group(0)) if match else json.loads(str(raw_content))
 
         score = parsed.get("score") or parsed.get("match_score") or parsed.get("Match Score") or parsed.get("matchScore") or 0
         matched = parsed.get("matched_skills") or parsed.get("Matched Skills") or parsed.get("matchedSkills") or []

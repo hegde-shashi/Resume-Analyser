@@ -45,8 +45,33 @@ app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=30)
 
 db.init_app(app)
 
+def check_migrations():
+    """Ensure database schema is up to date on startup."""
+    from sqlalchemy import inspect, text
+    inspector = inspect(db.engine)
+    
+    # Check for missing columns in 'user' table
+    if "user" in inspector.get_table_names():
+        columns = [c["name"] for c in inspector.get_columns("user")]
+        
+        if "reset_token" not in columns:
+            print("Migration: Adding reset_token to user table...")
+            db.session.execute(text('ALTER TABLE "user" ADD COLUMN reset_token VARCHAR(255)'))
+            db.session.commit()
+            
+        if "reset_token_expiry" not in columns:
+            print("Migration: Adding reset_token_expiry to user table...")
+            # Use TIMESTAMP for Postgres, will work for SQLite too
+            db.session.execute(text('ALTER TABLE "user" ADD COLUMN reset_token_expiry TIMESTAMP'))
+            db.session.commit()
+
 with app.app_context():
     db.create_all()
+    try:
+        check_migrations()
+    except Exception as e:
+        print(f"Migration error: {e}")
+        db.session.rollback()
 
 jwt = JWTManager(app)
 
