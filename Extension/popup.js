@@ -15,6 +15,8 @@ let customValidationPending = false;
 let isCurrentPageBlocked = false;
 let isCurrentTabSupported = false;
 let statusPollingTimeout = null;
+let lastErrorConfig = null; // Stores { model, api_key } when error was first shown
+
 
 window.onload = () => {
     const token = getStoredToken();
@@ -557,22 +559,40 @@ function updateActionButtons() {
     
     if (hasError && !shouldHideControls && !analysisReady) {
         retryBtn.style.display = "block";
+        
+        // Disable by default, enable only if user changed anything
+        const currentModel = getSelectedModel();
+        const currentKey = getLlmRequestConfig().api_key || null;
+        
+        if (!lastErrorConfig) {
+            lastErrorConfig = { model: currentModel, api_key: currentKey };
+            retryBtn.disabled = true;
+            retryBtn.style.opacity = "0.6";
+        } else if (lastErrorConfig.model === currentModel && lastErrorConfig.api_key === currentKey) {
+            retryBtn.disabled = true;
+            retryBtn.style.opacity = "0.6";
+        } else {
+            retryBtn.disabled = false;
+            retryBtn.style.opacity = "1";
+        }
     } else {
         retryBtn.style.display = "none";
+        lastErrorConfig = null; // Clear if error is gone
     }
 
     if (isBusy) {
         sendButton.disabled = true;
         analyseButton.disabled = true;
-        retryBtn.disabled = true;
+        if (retryBtn) retryBtn.disabled = true;
     }
 
     if (!isLlmReady()) {
         sendButton.disabled = true;
         analyseButton.disabled = true;
-        retryBtn.disabled = true;
+        if (retryBtn) retryBtn.disabled = true;
     }
 }
+
 
 
 function sendExtractMessage(tabId) {
@@ -1128,7 +1148,16 @@ document.getElementById("analyse").onclick = async () => {
     }
 };
 
+// Add change listeners to trigger updateActionButtons
+document.getElementById("modelSelect").onchange = () => updateActionButtons();
+document.getElementById("apiModeSelect").onchange = async () => {
+    await applyApiModeSelection();
+    updateActionButtons();
+};
+document.getElementById("customApiKey").oninput = () => updateActionButtons();
+
 document.getElementById("retryBtn").onclick = async () => {
+
     if (isBusy || !currentJobId) return;
 
     setBusyState(true, "Restarting parse with current settings...");

@@ -215,13 +215,20 @@ function Section({ label, items }) {
 }
 
 function JobCard({ job, onDelete, onProgressChange, onAnalyse, onMail, onCoverLetter, onReprocess }) {
-
+    const { llmPayload } = useSettings()
     const [expanded, setExpanded] = useState(false)
     const [updating, setUpdating] = useState(false)
     const [deleteModalOpen, setDeleteModalOpen] = useState(false)
     const [deleting, setDeleting] = useState(false)
+    const [initialSettings] = useState(job.error_message ? { ...llmPayload } : null)
+
+    const settingsChanged = initialSettings && (
+        initialSettings.model !== llmPayload.model || 
+        initialSettings.api_key !== llmPayload.api_key
+    )
 
     async function updateProgress(progress) {
+
         setUpdating(true)
         try {
             await api.post('/update_progress', { job_id: job.id, progress })
@@ -277,11 +284,22 @@ function JobCard({ job, onDelete, onProgressChange, onAnalyse, onMail, onCoverLe
                                 </span>
                                 <button 
                                     className="btn btn-ghost btn-xs" 
-                                    style={{ padding: '2px 6px', fontSize: '0.7rem', height: 'auto', minHeight: 0, color: 'var(--accent)', cursor: 'pointer', border: '1px solid var(--accent)' }}
+                                    style={{ 
+                                        padding: '2px 6px', 
+                                        fontSize: '0.7rem', 
+                                        height: 'auto', 
+                                        minHeight: 0, 
+                                        color: settingsChanged ? 'var(--accent)' : 'var(--text-muted)', 
+                                        cursor: settingsChanged ? 'pointer' : 'not-allowed', 
+                                        border: `1px solid ${settingsChanged ? 'var(--accent)' : 'var(--border-light)'}`,
+                                        opacity: settingsChanged ? 1 : 0.6
+                                    }}
+                                    disabled={!settingsChanged}
                                     onClick={(e) => { e.stopPropagation(); onReprocess(job.id); }}
                                 >
                                     <RefreshCw size={10} /> Retry
                                 </button>
+
                             </div>
                         ) : job.is_parsed === false ? (
 
