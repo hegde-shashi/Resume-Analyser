@@ -48,6 +48,8 @@ def compare_prompt(resume, job_description):
     prompt = ChatPromptTemplate.from_template(
         """
             You are an AI recruitment assistant. Compare the candidate's resume with the job description and evaluate how well the candidate matches the role.
+            Be objective and critical. Do not hesitate to give low scores if the candidate is not a good fit, but you must always provide a clear, logical reason for every score assigned.
+
 
             SCORING CRITERIA (Total = 100)
 
@@ -58,7 +60,7 @@ def compare_prompt(resume, job_description):
             * Handling Seniority Mismatch:
                 a) The Experience Match score MUST be low (0 to 5 out of 30) because the tenure requirement is not met.
                 b) SCORE CAP & FLEXIBILITY:
-                   - If the Job Description explicitly states that "experience is not a bar for exceptional candidates" or similar flexible language: Do NOT apply a hard cap on the total score. Evaluate the candidate's Skills and Projects fairly; if they are truly exceptional, the total score can be high despite the low experience score.
+                   - If the Job Description explicitly states that "Experience is not a limiting factor for exceptional talent." or similar flexible language: Do NOT apply a hard cap on the total score. Evaluate the candidate's Skills and Projects fairly; if they are truly exceptional, the total score can be high despite the low experience score. But the experience score should be low. Also the total score should not be more than 60.
                    - If NO such flexible language exists: The TOTAL overall score (out of 100) MUST NOT exceed 30. This is a hard cap.
 
 
