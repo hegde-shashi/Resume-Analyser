@@ -265,9 +265,10 @@ function JobCard({ job, onDelete, onProgressChange, onAnalyse, onMail, onCoverLe
                     }}>
                         {job.error_message ? (
                             <span style={{ color: 'var(--danger)', fontSize: '0.8rem', fontWeight: 600 }}>
-                                ⚠️ Error: {job.error_message}
+                                ⚠️ Error: {job.error_message.split('\n')[0]}
                             </span>
                         ) : job.is_parsed === false ? (
+
                             <span style={{ color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem' }}>
                                 <RefreshCw size={12} className="spin" /> AI Processing...
                             </span>

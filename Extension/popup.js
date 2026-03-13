@@ -779,8 +779,10 @@ async function fetchExistingJobForCurrentUrl() {
         displayJob(normalizedJob);
         
         if (normalizedJob.error_message) {
-            setStatus(`Error: ${normalizedJob.error_message}`, "warn");
+            const shortError = normalizedJob.error_message.split('\n')[0];
+            setStatus(`Error: ${shortError}`, "warn");
         } else {
+
             setStatus(normalizedJob.is_parsed ? "Job details loaded." : "Job already saved. AI is parsing...", "success");
         }
 
