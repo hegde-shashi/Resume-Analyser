@@ -27,12 +27,12 @@ def job_description_prompt():
 
         Fields and Extraction Rules:
         - job_title: The official title of the role.
-        - job_id: Any unique reference code if mentioned.
+        - job_id: Job ID of the role.
         - company: Name of the hiring organization.
         - location: Work location.
-        - experience_required: Capture the specific number of years. If the text mentions that "experience is not a bar" or is flexible for exceptional talent, explicitly include that phrase in this field (e.g., "5+ years, but flexible for exceptional talent").
+        - experience_required: Experience required for the role.
         - skills_required: List only the **Core/Primary Skills**. These are skills mentioned as "Must have", "Required", or mentioned repeatedly as fundamental to the role.
-        - preferred_skills: List **Secondary/Nice-to-have Skills**. These are skills mentioned as "Preferred", "Plus", "Desired", or "Bonus".
+        - preferred_skills: List **Secondary/Nice-to-have Skills**. These are skills mentioned as "Preferred", "Plus", "Desired", "Bonus" or anything similar.
         - responsibilities: Summary of key tasks.
         - education: Degrees or certifications required.
         - job_type: e.g., Full-time, Internship, Contract.
