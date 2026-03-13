@@ -82,6 +82,20 @@ def check_migrations():
             db.session.execute(text('ALTER TABLE jobs ADD COLUMN raw_content TEXT'))
             db.session.commit()
 
+        if "error_message" not in columns:
+            print("Migration: Adding error_message to jobs table...")
+            db.session.execute(text('ALTER TABLE jobs ADD COLUMN error_message TEXT'))
+            db.session.commit()
+
+    # Cleanup orphaned analysis records
+    if "analysis" in inspector.get_table_names() and "jobs" in inspector.get_table_names():
+        print("Migration: Cleaning up orphaned analysis records...")
+        # Delete analysis records where job_id does not exist in jobs table
+        db.session.execute(text('DELETE FROM analysis WHERE job_id NOT IN (SELECT id FROM jobs)'))
+        db.session.commit()
+
+
+
 with app.app_context():
     db.create_all()
     try:

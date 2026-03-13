@@ -263,7 +263,11 @@ function JobCard({ job, onDelete, onProgressChange, onAnalyse, onMail, onCoverLe
                     <div className="job-card-company" style={{
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem'
                     }}>
-                        {job.is_parsed === false ? (
+                        {job.error_message ? (
+                            <span style={{ color: 'var(--danger)', fontSize: '0.8rem', fontWeight: 600 }}>
+                                ⚠️ Error: {job.error_message}
+                            </span>
+                        ) : job.is_parsed === false ? (
                             <span style={{ color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem' }}>
                                 <RefreshCw size={12} className="spin" /> AI Processing...
                             </span>
@@ -274,6 +278,7 @@ function JobCard({ job, onDelete, onProgressChange, onAnalyse, onMail, onCoverLe
                             </>
                         )}
                     </div>
+
                 </div>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.4rem', flexShrink: 0 }}>
                     {job.matchScore != null && (

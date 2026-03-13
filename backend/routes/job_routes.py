@@ -146,7 +146,8 @@ def save_job():
             )
             thread.start()
 
-        return jsonify({"message": "Job saved", "job_id": job.id, "is_parsed": job.is_parsed})
+        return jsonify({"message": "Job saved", "job_id": job.id, "is_parsed": job.is_parsed, "error": job.error_message})
+
     except Exception as e:
         logging.error(f"Error saving job: {e}")
         db.session.rollback()
@@ -181,8 +182,10 @@ def get_jobs():
             "job_type": job.job_type,
             "progress": job.progress,
             "is_parsed": job.is_parsed,
+            "error_message": job.error_message,
             "matchScore": match_score,
             "created_at": job.created_at.strftime("%d/%m/%Y %H:%M:%S") if job.created_at else "",
+
         })
 
     return jsonify(result)

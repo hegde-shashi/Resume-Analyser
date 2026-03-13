@@ -87,14 +87,20 @@ def process_job_task(app, job_id, llm_config=None):
                         job.__setattr__(field, str(val))
                 
                 job.is_parsed = True
+                job.error_message = None # Clear any previous error
                 job.raw_content = None # Cleanup
                 db.session.commit()
+
                 logging.info(f"Successfully parsed job {job_id} in background task.")
             else:
                 logging.warning(f"Failed to parse LLM response as JSON for job {job_id}")
         except Exception as e:
-            logging.error(f"Immediate parse failed for job {job_id}: {e}")
+            error_text = str(e)
+            logging.error(f"Immediate parse failed for job {job_id}: {error_text}")
+            job.error_message = error_text
+            db.session.commit()
             # The 2-minute worker will pick it up later as a fallback
+
 
 def process_pending_jobs(app):
     """Background loop to process jobs that weren't parsed immediately."""
@@ -142,9 +148,11 @@ def process_pending_jobs(app):
                                         job.__setattr__(field, str(val))
                                 
                                 job.is_parsed = True
+                                job.error_message = None # Clear on success
                                 job.raw_content = None # Clear raw text after success to save DB space
                                 db.session.commit()
                                 logging.info(f"Successfully processed job ID: {job.id}")
+
                             else:
                                 logging.warning(f"Failed to parse LLM response as JSON for pending job {job.id}")
                                 
@@ -154,9 +162,13 @@ def process_pending_jobs(app):
                                     time.sleep(60)
                             
                         except Exception as e:
-                            logging.error(f"Error processing pending job {job.id}: {e}")
+                            error_text = str(e)
+                            logging.error(f"Error processing pending job {job.id}: {error_text}")
+                            job.error_message = error_text
+                            db.session.commit()
                             # On ANY error, we pause for 30s to be safe
                             break
+
                 
         except Exception as e:
             logging.error(f"Background worker error: {e}")

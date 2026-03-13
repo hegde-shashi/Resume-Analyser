@@ -195,8 +195,10 @@ function normalizeJobPayload(payload) {
         experience: source.experience ?? source.experience_required ?? null,
         job_link: source.job_link ?? source.url ?? source.link ?? null,
         progress: source.progress ?? null,
-        is_parsed: source.is_parsed ?? payload.is_parsed ?? false
+        is_parsed: source.is_parsed ?? payload.is_parsed ?? false,
+        error_message: source.error_message ?? payload.error ?? null
     };
+
 }
 
 function formatJobValue(value) {
@@ -775,7 +777,13 @@ async function fetchExistingJobForCurrentUrl() {
         normalizedJob.job_link = activeJobLink;
         currentJobId = existingJob.id || normalizedJob.id || null;
         displayJob(normalizedJob);
-        setStatus(normalizedJob.is_parsed ? "Job details loaded." : "Job already saved. AI is parsing...", "success");
+        
+        if (normalizedJob.error_message) {
+            setStatus(`Error: ${normalizedJob.error_message}`, "warn");
+        } else {
+            setStatus(normalizedJob.is_parsed ? "Job details loaded." : "Job already saved. AI is parsing...", "success");
+        }
+
 
         // START POLLING if not parsed yet
         if (!normalizedJob.is_parsed) {
