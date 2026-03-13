@@ -19,5 +19,6 @@ class Jobs(db.Model):
     job_type = db.Column(db.String(200))
     progress = db.Column(db.String(50))
     is_parsed = db.Column(db.Boolean, default=False)
+    error_message = db.Column(db.Text)
     raw_content = db.Column(db.Text)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
