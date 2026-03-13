@@ -99,9 +99,14 @@ def process_job_task(app, job_id, llm_config=None):
             error_text = handle_llm_error(e)
             logging.error(f"Immediate parse failed for job {job_id}: {error_text}")
             job.error_message = error_text
-
+            job.retry_count = (job.retry_count or 0) + 1
+            
+            if job.retry_count >= 5:
+                logging.info(f"Job {job_id} reached 5 retries. Deleting.")
+                db.session.delete(job)
+            
             db.session.commit()
-            # The 2-minute worker will pick it up later as a fallback
+
 
 
 def process_pending_jobs(app):
@@ -151,8 +156,10 @@ def process_pending_jobs(app):
                                 
                                 job.is_parsed = True
                                 job.error_message = None # Clear on success
+                                job.retry_count = 0 # Reset on success
                                 job.raw_content = None # Clear raw text after success to save DB space
                                 db.session.commit()
+
                                 logging.info(f"Successfully processed job ID: {job.id}")
 
                             else:
@@ -167,10 +174,16 @@ def process_pending_jobs(app):
                             error_text = handle_llm_error(e)
                             logging.error(f"Error processing pending job {job.id}: {error_text}")
                             job.error_message = error_text
+                            job.retry_count = (job.retry_count or 0) + 1
 
+                            if job.retry_count >= 5:
+                                logging.info(f"Pending Job {job.id} reached 5 retries. Deleting.")
+                                db.session.delete(job)
+                            
                             db.session.commit()
                             # On ANY error, we pause for 30s to be safe
                             break
+
 
                 
         except Exception as e:

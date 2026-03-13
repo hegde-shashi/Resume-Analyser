@@ -20,5 +20,6 @@ class Jobs(db.Model):
     progress = db.Column(db.String(50))
     is_parsed = db.Column(db.Boolean, default=False)
     error_message = db.Column(db.Text)
+    retry_count = db.Column(db.Integer, default=0)
     raw_content = db.Column(db.Text)
     created_at = db.Column(db.DateTime, server_default=db.func.now())

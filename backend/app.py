@@ -87,6 +87,12 @@ def check_migrations():
             db.session.execute(text('ALTER TABLE jobs ADD COLUMN error_message TEXT'))
             db.session.commit()
 
+        if "retry_count" not in columns:
+            print("Migration: Adding retry_count to jobs table...")
+            db.session.execute(text('ALTER TABLE jobs ADD COLUMN retry_count INTEGER DEFAULT 0'))
+            db.session.commit()
+
+
     # Cleanup orphaned analysis records
     if "analysis" in inspector.get_table_names() and "jobs" in inspector.get_table_names():
         print("Migration: Cleaning up orphaned analysis records...")

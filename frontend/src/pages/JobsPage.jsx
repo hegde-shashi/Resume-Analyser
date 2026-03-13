@@ -264,10 +264,14 @@ function JobCard({ job, onDelete, onProgressChange, onAnalyse, onMail, onCoverLe
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem'
                     }}>
                         {job.error_message ? (
-                            <span style={{ color: 'var(--danger)', fontSize: '0.8rem', fontWeight: 600 }}>
-                                ⚠️ Error: {String(job.error_message).split(/\n|\\n/)[0].trim().substring(0, 100)}...
+                            <span 
+                                style={{ color: 'var(--danger)', fontSize: '0.8rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}
+                                title={job.error_message}
+                            >
+                                ⚠️ Error: {String(job.error_message).split(/\n|\\n/)[0].trim()}
                             </span>
                         ) : job.is_parsed === false ? (
+
 
 
                             <span style={{ color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem' }}>

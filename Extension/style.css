@@ -171,12 +171,16 @@ button:disabled {
 }
 
 .status {
-    font-size: 12px;
+    font-size: 11px;
     padding: 8px 10px;
     border-radius: 10px;
     margin: 4px 0 8px;
     border: 1px solid transparent;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
+
 
 .status.info {
     background: #eff6ff;

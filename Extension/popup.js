@@ -40,12 +40,18 @@ function showApp() {
     initializePopupState();
 }
 
-function setStatus(message, type = "info") {
+function setStatus(message, type = "info", tooltip = "") {
     const status = document.getElementById("statusMessage");
     status.style.display = "block";
     status.className = `status ${type}`;
     status.textContent = message;
+    if (tooltip) {
+        status.title = tooltip;
+    } else {
+        status.removeAttribute('title');
+    }
 }
+
 
 function clearStatus() {
     const status = document.getElementById("statusMessage");
@@ -782,10 +788,10 @@ async function fetchExistingJobForCurrentUrl() {
             // Split by real newline OR literal "\n" string, then take 1st part and cap at 120 chars
             const shortError = String(normalizedJob.error_message)
                 .split(/\n|\\n/)[0]
-                .trim()
-                .substring(0, 120);
-            setStatus(`Error: ${shortError}${shortError.length >= 120 ? '...' : ''}`, "warn");
+                .trim();
+            setStatus(`Error: ${shortError}`, "warn", normalizedJob.error_message);
         } else {
+
 
 
             setStatus(normalizedJob.is_parsed ? "Job details loaded." : "Job already saved. AI is parsing...", "success");

@@ -773,8 +773,9 @@ select {
   padding: 1.25rem 1.5rem;
   box-shadow: var(--shadow-sm);
   transition: all var(--transition);
-  cursor: pointer;
+  cursor: default;
   display: flex;
+
   flex-direction: column;
   gap: 0.75rem;
 }
