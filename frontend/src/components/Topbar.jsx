@@ -34,7 +34,7 @@ export default function Topbar({ pageTitle, setSidebarOpen, sidebarHidden, setSi
                                     <PanelLeftOpen size={20} />
                                 </button>
                                 <div style={{ paddingTop: '0.5rem' }}>
-                                    <a href="/dashboard">
+                                    <a href="/">
                                         <Logo size={75} />
                                     </a>
                                 </div>
@@ -51,8 +51,8 @@ export default function Topbar({ pageTitle, setSidebarOpen, sidebarHidden, setSi
                     </div>
                     
                     {/* Centered Logo on Mobile */}
-                    <div className="mobile-only" style={{ paddingTop: '0.5rem' }}>
-                        <a href="/dashboard">
+                    <div className="mobile-only" style={{ paddingTop: '0.5rem' , width: '100%', textAlign: 'center' }}>
+                        <a href="/">
                             <Logo size={85} />
                         </a>
                     </div>
