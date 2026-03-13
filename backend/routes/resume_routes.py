@@ -1,4 +1,6 @@
 from flask import Blueprint, request, jsonify
+import logging
+
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from backend.database.db import db
 from backend.models.resume_model import Resume
@@ -94,6 +96,5 @@ def delete_resume():
         return {"message": "Resume deleted"}
     except Exception as e:
         db.session.rollback()
-        import logging
         logging.error(f"Error deleting resume: {e}")
         return {"error": "Failed to delete resume. Please try again."}, 500

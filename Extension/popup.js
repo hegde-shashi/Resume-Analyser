@@ -1,4 +1,4 @@
-const API = "<BACKEND_URL>";
+const API = "http://localhost:5001";
 const MODEL_STORAGE_KEY = "selectedModel";
 const DEFAULT_API_MODE = "default";
 const USER_API_MODE = "user";

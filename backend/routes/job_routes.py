@@ -1,4 +1,6 @@
 from flask import Blueprint, request, jsonify
+import logging
+
 from backend.models.job_model import Jobs
 from backend.database.db import db
 from backend.services.job_scrapper import scrape_job

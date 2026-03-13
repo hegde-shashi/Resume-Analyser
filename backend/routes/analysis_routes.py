@@ -1,4 +1,6 @@
 from flask import Blueprint, request, jsonify
+import logging
+
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from backend.services.job_services import build_job_context
 from backend.database.db import db
@@ -104,7 +106,6 @@ def analyze_job():
         })
 
     except Exception as e:
-        import logging
         logging.error(f"Error parsing or saving LLM response: {e}")
         # fallback to raw content if parsing fails completely, although db save won't happen
         return jsonify({"analysis": answer.content})
