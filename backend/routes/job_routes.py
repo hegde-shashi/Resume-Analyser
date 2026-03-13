@@ -218,6 +218,40 @@ def update_progress():
     if not job:
         return {"error": "Job not found"}, 404
 
-    job.progress = data.get("progress", job.progress)
+    job.progress = data["progress"]
     db.session.commit()
-    return {"message": "Job updated successfully"}
+    return {"message": "Progress updated"}
+
+
+@job_bp.route("/reprocess_job", methods=["POST"])
+@jwt_required()
+def reprocess_job():
+    user_id = int(get_jwt_identity())
+    data = request.get_json()
+    job_id = data.get("job_id")
+
+    job = Jobs.query.filter_by(id=job_id, user_id=user_id).first()
+    if not job:
+        return jsonify({"error": "Job not found"}), 404
+
+    # Reset job state
+    job.is_parsed = False
+    job.error_message = None
+    job.retry_count = 0
+    db.session.commit()
+
+    # Get configuration from frontend request (NOT stored in DB)
+    llm_config = {
+        "model": data.get("model") or data.get("selected_model") or "gemini-2.5-flash-lite",
+        "mode": "user" if data.get("api_key") else "default",
+        "api_key": data.get("api_key")
+    }
+
+    # Start immediate processing with user's transient key
+    thread = threading.Thread(
+        target=process_job_task, 
+        args=(current_app._get_current_object(), job.id, llm_config)
+    )
+    thread.start()
+
+    return jsonify({"message": "Retry started"})

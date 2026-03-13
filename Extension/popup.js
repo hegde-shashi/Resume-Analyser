@@ -550,16 +550,28 @@ function updateActionButtons() {
     analyseButton.classList.remove("disabled");
     analyseButton.textContent = "Analyse Resume Match";
 
+    const retryBtn = document.getElementById("retryBtn");
+    const hasError = currentJob && currentJob.error_message && !currentJob.is_parsed;
+    
+    if (hasError && !shouldHideControls && !analysisReady) {
+        retryBtn.style.display = "block";
+    } else {
+        retryBtn.style.display = "none";
+    }
+
     if (isBusy) {
         sendButton.disabled = true;
         analyseButton.disabled = true;
+        retryBtn.disabled = true;
     }
 
     if (!isLlmReady()) {
         sendButton.disabled = true;
         analyseButton.disabled = true;
+        retryBtn.disabled = true;
     }
 }
+
 
 function sendExtractMessage(tabId) {
     return new Promise((resolve, reject) => {
@@ -1113,7 +1125,50 @@ document.getElementById("analyse").onclick = async () => {
     }
 };
 
+document.getElementById("retryBtn").onclick = async () => {
+    if (isBusy || !currentJobId) return;
+
+    setBusyState(true, "Restarting parse with current settings...");
+    clearStatus();
+
+    try {
+        const payload = {
+            job_id: currentJobId,
+            model: getSelectedModel(),
+            api_key: getLlmRequestConfig().api_key || null
+        };
+
+        const token = getStoredToken();
+        const res = await fetch(`${API}/reprocess_job`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const { data } = await parseApiResponse(res);
+        if (res.ok) {
+            setStatus("Retry requested using current model. AI is working...", "success");
+            // Switch currentJob state so polling picks it up
+            if (currentJob) {
+                currentJob.is_parsed = false;
+                currentJob.error_message = null;
+            }
+            setTimeout(fetchExistingJobForCurrentUrl, 3000);
+        } else {
+            throw new Error(data.error || "Retry failed");
+        }
+    } catch (e) {
+        setStatus(`Retry failed: ${e.message}`, "warn");
+    } finally {
+        setBusyState(false);
+    }
+};
+
 document.getElementById("logout").onclick = () => {
     localStorage.removeItem("token");
     showLogin();
 };
+

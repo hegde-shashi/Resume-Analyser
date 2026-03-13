@@ -214,7 +214,8 @@ function Section({ label, items }) {
     )
 }
 
-function JobCard({ job, onDelete, onProgressChange, onAnalyse, onMail, onCoverLetter }) {
+function JobCard({ job, onDelete, onProgressChange, onAnalyse, onMail, onCoverLetter, onReprocess }) {
+
     const [expanded, setExpanded] = useState(false)
     const [updating, setUpdating] = useState(false)
     const [deleteModalOpen, setDeleteModalOpen] = useState(false)
@@ -264,13 +265,23 @@ function JobCard({ job, onDelete, onProgressChange, onAnalyse, onMail, onCoverLe
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem'
                     }}>
                         {job.error_message ? (
-                            <span 
-                                style={{ color: 'var(--danger)', fontSize: '0.8rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}
-                                title={job.error_message}
-                            >
-                                ⚠️ Error: {String(job.error_message).split(/\n|\\n/)[0].trim()}
-                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', maxWidth: '100%' }}>
+                                <span 
+                                    style={{ color: 'var(--danger)', fontSize: '0.8rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                    title={job.error_message}
+                                >
+                                    ⚠️ Error: {String(job.error_message).split(/\n|\\n/)[0].trim()}
+                                </span>
+                                <button 
+                                    className="btn btn-ghost btn-xs" 
+                                    style={{ padding: '2px 6px', fontSize: '0.7rem', height: 'auto', minHeight: 0, color: 'var(--accent)', cursor: 'pointer' }}
+                                    onClick={(e) => { e.stopPropagation(); onReprocess(job.id); }}
+                                >
+                                    <RefreshCw size={10} /> Retry
+                                </button>
+                            </div>
                         ) : job.is_parsed === false ? (
+
 
 
 
@@ -452,6 +463,17 @@ export default function JobsPage() {
         } finally { setGeneratingCoverLetter(false) }
     }
 
+    async function reprocess(jobId) {
+        try {
+            await api.post('/reprocess_job', { job_id: jobId, ...llmPayload })
+            setJobs(js => js.map(j => j.id === jobId ? { ...j, is_parsed: false, error_message: null, retry_count: 0 } : j))
+            toast.success('Retry started with current settings')
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Failed to start retry')
+        }
+    }
+
+
     if (loading) return <div className="loading-center"><div className="spinner spinner-lg" /></div>
 
     return (
@@ -479,7 +501,9 @@ export default function JobsPage() {
                     {jobs.map(j => (
                         <JobCard key={j.id} job={j}
                             onDelete={remove} onProgressChange={changeProgress} onAnalyse={analyse}
-                            onMail={generateMail} onCoverLetter={generateCoverLetter} />
+                            onMail={generateMail} onCoverLetter={generateCoverLetter}
+                            onReprocess={reprocess} />
+
                     ))}
                 </div>
             )}
