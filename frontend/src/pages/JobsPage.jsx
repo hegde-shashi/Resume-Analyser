@@ -456,12 +456,26 @@ export default function JobsPage() {
     const remove = (id) => setJobs(js => js.filter(j => j.id !== id))
     const changeProgress = (id, progress) => setJobs(js => js.map(j => j.id === id ? { ...j, progress } : j))
 
-    async function analyse(job) {
-        setAnalysis({ job, result: null, isFetching: true })
+    async function analyse(job, force = false) {
+        setAnalysis(prev => ({ 
+            job, 
+            result: force ? null : prev?.result, 
+            isFetching: true,
+            isStale: force ? false : prev?.isStale 
+        }))
         setAnalysing(true)
         try {
-            const { data } = await api.post('/analyze_job', { job_id: job.id, ...llmPayload })
-            setAnalysis({ job, result: data.analysis, isFetching: false })
+            const { data } = await api.post('/analyze_job', { 
+                job_id: job.id, 
+                force_reanalyze: force,
+                ...llmPayload 
+            })
+            setAnalysis({ 
+                job, 
+                result: data.analysis, 
+                isFetching: false,
+                isStale: data.is_stale || false 
+            })
             if (data.analysis?.score !== undefined) {
                 setJobs(js => js.map(j => j.id === job.id ? { ...j, matchScore: data.analysis.score } : j))
             }
@@ -470,6 +484,7 @@ export default function JobsPage() {
             setAnalysis(null)
         } finally { setAnalysing(false) }
     }
+
 
     async function generateMail(job) {
         setMailResult({ job, result: null, isFetching: true })
@@ -550,14 +565,30 @@ export default function JobsPage() {
                                 <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setAnalysis(null)}>✕</button>
                             </div>
                             <div className="modal-body" style={{ flex: 1, overflowY: 'auto' }}>
-                                {analysing ? (
-                                    <div className="loading-center">
-                                        <div className="spinner spinner-lg" />
-                                        <span>Getting analysis... this can take 1-2 minutes</span>
-                                    </div>
-                                ) : analysis.result ? (
-                                    <AnalysisResult raw={analysis.result} />
-                                ) : null}
+                                {analysis.isStale && (
+                                     <div style={{ padding: '0.75rem 1rem', background: 'var(--warning-soft)', borderLeft: '4px solid var(--warning)', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+
+                                         <div style={{ fontSize: '0.85rem' }}>
+                                             <strong>⚠️ New Resume Found:</strong> This analysis was based on an older version of your resume. Would you like to re-analyse?
+                                         </div>
+                                         <button 
+                                             className="btn btn-primary btn-sm" 
+                                             style={{ flexShrink: 0 }}
+                                             onClick={() => analyse(analysis.job, true)}
+                                             disabled={analysing}
+                                         >
+                                             {analysing ? 'Analysing...' : 'Re-analyse Now'}
+                                         </button>
+                                     </div>
+                                 )}
+                                 {analysing ? (
+                                     <div className="loading-center">
+                                         <div className="spinner spinner-lg" />
+                                         <span>Getting analysis... this can take 1-2 minutes</span>
+                                     </div>
+                                 ) : analysis.result ? (
+                                     <AnalysisResult raw={analysis.result} />
+                                 ) : null}
                             </div>
                         </div>
                     </Draggable>

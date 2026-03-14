@@ -95,12 +95,20 @@ def check_migrations():
             db.session.commit()
 
 
+    # Analysis Migrations
+    if "analysis" in inspector.get_table_names():
+        columns = [c["name"] for c in inspector.get_columns("analysis")]
+        if "created_at" not in columns:
+            print("Migration: Adding created_at to analysis table...")
+            db.session.execute(text('ALTER TABLE analysis ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP'))
+            db.session.commit()
+
     # Cleanup orphaned analysis records
     if "analysis" in inspector.get_table_names() and "jobs" in inspector.get_table_names():
         print("Migration: Cleaning up orphaned analysis records...")
-        # Delete analysis records where job_id does not exist in jobs table
         db.session.execute(text('DELETE FROM analysis WHERE job_id NOT IN (SELECT id FROM jobs)'))
         db.session.commit()
+
 
 
 

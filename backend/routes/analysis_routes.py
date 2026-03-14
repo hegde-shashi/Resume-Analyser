@@ -30,6 +30,8 @@ def analyze_job():
         return jsonify({"error": handle_llm_error(e)}), 400
 
 
+    force_reanalyze = data.get("force_reanalyze", False)
+
     job = Jobs.query.filter_by(
         id=job_id,
         user_id=user_id
@@ -38,25 +40,52 @@ def analyze_job():
     if not job:
         return jsonify({"error": "Job not found"}), 404
 
+    resume = Resume.query.filter_by(user_id=user_id).first()
+    if not resume:
+        return jsonify({"error": "Please upload a resume first to analyze this job"}), 400
+
     # Check if analysis exists
     existing = Analysis.query.filter_by(job_id=job_id).first()
+    
     if existing:
-        return jsonify({
-            "analysis": {
-                "score": existing.score,
-                "matched_skills": existing.matched_skills,
-                "missing_skills": existing.missing_skills,
-                "suggestions": existing.suggestions,
-                "evaluation_summary": existing.evaluation_summary
-            }
-        })
+        # Check if analysis is stale (compare with resume uploaded_at or created_at)
+        # Use whichever is newer or available
+        resume_time = resume.uploaded_at or resume.created_at
+        is_stale = False
+        if resume_time and existing.created_at:
+            # Add a small buffer (e.g. 5 seconds) to avoid false positives during same-process execution
+            if resume_time > existing.created_at:
+                is_stale = True
+
+        if is_stale and not force_reanalyze:
+            return jsonify({
+                "is_stale": True,
+                "analysis": {
+                    "score": existing.score,
+                    "matched_skills": existing.matched_skills,
+                    "missing_skills": existing.missing_skills,
+                    "suggestions": existing.suggestions,
+                    "evaluation_summary": existing.evaluation_summary
+                }
+            })
+        
+        if not is_stale:
+            return jsonify({
+                "analysis": {
+                    "score": existing.score,
+                    "matched_skills": existing.matched_skills,
+                    "missing_skills": existing.missing_skills,
+                    "suggestions": existing.suggestions,
+                    "evaluation_summary": existing.evaluation_summary
+                }
+            })
+        
+        # If we reach here, it means is_stale is True AND force_reanalyze is True
+        db.session.delete(existing)
+        db.session.commit()
 
     job_text = build_job_context(job)
 
-    resume = Resume.query.filter_by(user_id=user_id).first()
-
-    if not resume:
-        return {"error": "Please upload a resume first to analyze this job"}, 400
 
     prompt = compare_prompt(
         resume.text_chunk,

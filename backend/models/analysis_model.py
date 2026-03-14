@@ -11,3 +11,4 @@ class Analysis(db.Model):
     missing_skills = db.Column(db.JSON)
     suggestions = db.Column(db.JSON)
     evaluation_summary = db.Column(db.JSON)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
