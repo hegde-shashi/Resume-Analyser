@@ -64,9 +64,6 @@ def compare_prompt(resume, job_description):
                    - If the Job Description explicitly states that "Experience is not a limiting factor for exceptional talent." or similar flexible language: Do NOT apply a hard cap on the total score. Evaluate the candidate's Skills and Projects fairly; if they are truly exceptional, the total score can be high despite the low experience score. But the experience score should be low. Also the total score should not be more than 60.
                    - If NO such flexible language exists: The TOTAL overall score (out of 100) MUST NOT exceed 30. This is a hard cap.
 
-
-
-
             2. Skills Match — 40%
 
             * DO NOT perform 1:1 keyword matching. Instead, identify the **Core vs. Secondary Skills** in the Job Description based on emphasis and frequency of mention.
@@ -76,9 +73,9 @@ def compare_prompt(resume, job_description):
 
             3. Work / Project Relevance — 20%
 
+            * Check Summary, Projects and Experience section for relevant skills.
             * Look for specific evidence where the candidate applied the JD's most important skills in high-impact projects or previous roles.
             * If the JD is for a Data Scientist role but the projects are purely Web Development, the score should be low even if the tech stack (e.g., Python) overlaps. Relevance of *domain* and *responsibility* is key.
-
 
             4. Resume Quality — 10%
 
@@ -205,31 +202,6 @@ def cover_letter_prompt(candidate_name, resume, job_description):
 
 def chat_prompt():
 
-    # return f"""
-    #             You are an AI career assistant helping a candidate with a specific job application.
-
-    #             Response Style:
-    #             - Maximum 400 words
-    #             - Use bullet points wherever required
-    #             - Focus only on the most important points
-    #             - If you dont know the answer, politely say you dont know, don't make it up
-    #             - If the question is unrelated, politely say you can only help related to this job
-    #             - If no resume is provided, politely say to provide a resume.
-
-    #             Candidate Resume:
-    #             {resume}
-
-    #             Job Information:
-
-    #             Job Title: {job.job_title}
-    #             Job Link: {job.job_link}
-    #             Company: {job.company}
-    #             Location: {job.location}
-    #             Application Progress: {job.progress}
-
-    #             User Question: {question}
-    #         """
-
     return ChatPromptTemplate.from_messages([
                     ("system",
                     """
@@ -268,3 +240,216 @@ def chat_prompt():
                     ),
                     ("human","{input}")
                     ])      
+
+
+def get_resume_structured_prompt(resume_text):
+    return f"""
+                You are an expert resume parser.
+
+                Your task is to convert the following resume into a structured JSON format.
+
+                Rules:
+                - Do not invent any information.
+                - Only use data present in the resume.
+                - Convert experience and project descriptions into bullet points.
+                - Bullet points must be returned as arrays of strings.
+                - Don't change Education details and Certificates, check only spelling and grammar.
+                - Keep the information concise and ATS-friendly.
+                - If a field is missing, return an empty value.
+
+                Return ONLY valid JSON in the following structure:
+
+                {{
+                "name": "",
+                "mobile_number": "",
+                "mail_id": "",
+                "linkedin_link": "",
+                "github_link": "",
+                "portfolio_link": "",
+                "summary": "",
+                "skills": [
+                    {{
+                    "main_skill": "",
+                    "sub_skills": ""
+                    }}
+                ],
+                "companies": [
+                    {{
+                    "position": "",
+                    "name": "",
+                    "from": "",
+                    "to": "",
+                    "experience": []
+                    }}
+                ],
+                "projects": [
+                    {{
+                    "title": "",
+                    "tools_used": "",
+                    "project_link": "",
+                    "project_details": []
+                    }}
+                ],
+                "educations": [
+                    {{
+                    "field": "",
+                    "subject": "",
+                    "college": "",
+                    "college_from": "",
+                    "college_to": ""
+                    }}
+                ],
+                "certificates": [
+                    {{
+                    "name": "",
+                    "issuer": ""
+                    }}
+                ]
+                }}
+
+                Resume:
+                {resume_text}
+            """
+
+def get_form_ai_prompt(data):
+    return f"""
+                You are a professional resume writer.
+
+                Using the provided user data, generate an ATS-friendly resume structure.
+
+                Rules:
+                - Do not add fake experience.
+                - Improve grammar, clarity, and professional impact.
+                - Convert descriptions into high-impact, results-oriented bullet points.
+                - Each bullet point must start with a strong action verb (e.g., "Engineered", "Optimized", "Spearheaded").
+                - Where possible, quantify achievements (e.g., "reduced latency by 20%").
+                - Rephrase generic tasks into professional accomplishments.
+                - Don't change Education details and Certificates, check only spelling and grammar.
+                - Return the data in the required JSON structure.
+
+                Return ONLY JSON using this schema:
+
+                {{
+                "name": "",
+                "mobile_number": "",
+                "mail_id": "",
+                "linkedin_link": "",
+                "github_link": "",
+                "portfolio_link": "",
+                "summary": "",
+                "skills": [
+                    {{
+                    "main_skill": "",
+                    "sub_skills": ""
+                    }}
+                ],
+                "companies": [
+                    {{
+                    "position": "",
+                    "name": "",
+                    "from": "",
+                    "to": "",
+                    "experience": []
+                    }}
+                ],
+                "projects": [
+                    {{
+                    "title": "",
+                    "tools_used": "",
+                    "project_link": "",
+                    "project_details": []
+                    }}
+                ],
+                "educations": [
+                    {{
+                    "field": "",
+                    "subject": "",
+                    "college": "",
+                    "college_from": "",
+                    "college_to": ""
+                    }}
+                ],
+                "certificates": [
+                    {{
+                    "name": "",
+                    "issuer": ""
+                    }}
+                ]
+                }}
+
+                User data:
+                {data}
+            """
+
+def get_job_specific_prompt(resume_text, job_description):
+    return f"""
+                You are an expert resume optimizer.
+
+                Rewrite the resume so it better matches the provided job description while keeping the original experience.
+
+                Rules:
+                - Do not invent new roles or experiences, but you are encouraged to rephrase existing ones for maximum relevance.
+                - Only rephrase, prioritize, and optimize content that aligns with the target role.
+                - Create a punchy, professional summary based on the job description. (Max 2-3 lines).
+                - Use high-impact keywords from the job description naturally.
+                - Convert experience and project descriptions into professional bullet points using strong action verbs.
+                - Focus on "Impact" and "Results" rather than just "Responsibilities".
+                - Don't change Education details and Certificates, check only spelling and grammar.
+                - Maintain ATS-friendly formatting.
+
+                Return ONLY JSON in this structure:
+
+                {{
+                "name": "",
+                "mobile_number": "",
+                "mail_id": "",
+                "linkedin_link": "",
+                "github_link": "",
+                "portfolio_link": "",
+                "summary": "",
+                "skills": [
+                    {{
+                    "main_skill": "",
+                    "sub_skills": ""
+                    }}
+                ],
+                "companies": [
+                    {{
+                    "position": "",
+                    "name": "",
+                    "from": "",
+                    "to": "",
+                    "experience": []
+                    }}
+                ],
+                "projects": [
+                    {{
+                    "title": "",
+                    "tools_used": "",
+                    "project_link": "",
+                    "project_details": []
+                    }}
+                ],
+                "educations": [
+                    {{
+                    "field": "",
+                    "subject": "",
+                    "college": "",
+                    "college_from": "",
+                    "college_to": ""
+                    }}
+                ],
+                "certificates": [
+                    {{
+                    "name": "",
+                    "issuer": ""
+                    }}
+                ]
+                }}
+
+                Resume:
+                {resume_text}
+
+                Job Description:
+                {job_description}
+            """
