@@ -97,6 +97,7 @@ def parse_jd():
 def save_job():
     user_id = int(get_jwt_identity())
     data    = request.get_json()
+    logging.info(f"Save job request from user {user_id}. Data keys: {list(data.keys()) if data else 'None'}")
 
     # Only pass fields that exist on the model
     # Handle mappings for extension/frontend compatibility

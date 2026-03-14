@@ -36,12 +36,21 @@ function AddJobModal({ onClose, onAdded }) {
 
             if (data.llm_free === false) {
                 toast.success('AI is busy. Saving for background processing...');
+                // Safely extract hostname for "AI is busy" fallback
+                let companyDefault = 'Pending...';
+                try {
+                    if (link) {
+                        const urlStr = link.includes('://') ? link : `https://${link}`;
+                        companyDefault = new URL(urlStr).hostname.replace('www.', '');
+                    }
+                } catch { }
+
                 // Auto-save with raw content
                 await save({
                     is_parsed: false,
                     job_description: data.raw_content,
                     job_link: link,
-                    company: link ? new URL(link).hostname.replace('www.', '') : 'Pending...',
+                    company: companyDefault,
                     model: llmPayload.model,
                     api_key: llmPayload.api_key
                 });
@@ -58,14 +67,17 @@ function AddJobModal({ onClose, onAdded }) {
     }
 
     async function save(overrides = null) {
+        console.log("Saving job with payload:", overrides || parsed);
         setSaving(true)
         const payload = overrides || { ...parsed, job_link: link, progress: 'Checking', is_parsed: true, ...llmPayload }
         try {
-            await api.post('/save_job', payload)
+            const res = await api.post('/save_job', payload)
+            console.log("Save response:", res.data);
             if (!overrides) toast.success('Job saved!')
             onAdded()
             onClose()
-        } catch {
+        } catch (err) {
+            console.error("Save failed error:", err);
             toast.error('Save failed')
         } finally {
             setSaving(false)
@@ -137,7 +149,7 @@ function AddJobModal({ onClose, onAdded }) {
                 </div>
                 <div className="modal-footer">
                     <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
-                    {parsed && <button className="btn btn-primary" onClick={save} disabled={saving}>{saving ? <span className="spinner" /> : 'Save Job'}</button>}
+                    {parsed && <button className="btn btn-primary" onClick={() => save()} disabled={saving}>{saving ? <span className="spinner" /> : 'Save Job'}</button>}
                 </div>
             </div>
         </div>

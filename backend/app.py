@@ -94,6 +94,19 @@ def check_migrations():
             db.session.execute(text('ALTER TABLE jobs ADD COLUMN retry_count INTEGER DEFAULT 0'))
             db.session.commit()
 
+        # Increase column sizes for existing tables (Postgres specifically needs this for TEXT/longer strings)
+        # SQLite ignores the size mostly, but Postgres enforces it.
+        print("Migration: Ensuring job table columns are TEXT...")
+        for col in ["job_title", "job_id", "company", "location", "job_type", "progress", "experience_required"]:
+            try:
+                # Use a generic ALTER TABLE that works for both or check dialect
+                if "postgresql" in str(db.engine.url):
+                    db.session.execute(text(f'ALTER TABLE jobs ALTER COLUMN {col} TYPE TEXT'))
+                # SQLite doesn't support ALTER COLUMN TYPE easily, but it usually doesn't need it as VARCHAR is same as TEXT
+            except Exception as e:
+                print(f"Migration warning on column {col}: {e}")
+        db.session.commit()
+
 
     # Analysis Migrations
     if "analysis" in inspector.get_table_names():
