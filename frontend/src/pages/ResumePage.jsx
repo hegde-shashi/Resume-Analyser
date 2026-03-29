@@ -13,11 +13,11 @@ export default function ResumePage() {
     const [dragover, setDragover] = useState(false)
     const fileRef = useRef()
 
-    const load = () => api.get('/get_resume')
+    const load = useCallback(() => api.get('/get_resume')
         .then(r => setResume(r.data))
-        .finally(() => setLoading(false))
+        .finally(() => setLoading(false)), [])
 
-    useEffect(() => { load() }, [])
+    useEffect(() => { load() }, [load])
 
     const toBase64 = file => new Promise((res, rej) => {
         const reader = new FileReader()

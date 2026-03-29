@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import api from '../api'
 import toast from 'react-hot-toast'
 import { FileText, Sparkles, Briefcase, Download, Upload, List, ChevronDown, Check } from 'lucide-react'
@@ -32,6 +32,23 @@ export default function GeneratorPage({ setPage }) {
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const futureMonth = `${now.getFullYear() + 5}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    
+    const normalizeToInputDate = (val) => {
+        if (!val || val === 'Present') return '';
+        // If already YYYY-MM-DD
+        if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+        // If MM/YYYY or DD/MM/YYYY
+        const d_m_y = val.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+        if (d_m_y) return `${d_m_y[3]}-${d_m_y[2].padStart(2,'0')}-${d_m_y[1].padStart(2,'0')}`;
+        // If Month YYYY (e.g. Aug 2022)
+        const moMap = { jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12' };
+        const match = val.match(/^([a-z]+)\s*(\d{4})$/i);
+        if (match) {
+            const m = moMap[match[1].toLowerCase().substring(0,3)] || '01';
+            return `${match[2]}-${m}-01`;
+        }
+        return val;
+    };
 
     // User data form for manual builder
     const [formData, setFormData] = useState({
@@ -41,6 +58,7 @@ export default function GeneratorPage({ setPage }) {
         linkedin_link: '',
         github_link: '',
         portfolio_link: '',
+        date_of_birth: '',
         summary: '',
         skills: [{ main_skill: '', sub_skills: '' }],
         companies: [{ position: '', name: '', from: '', to: '', experience: '' }],
@@ -74,13 +92,16 @@ export default function GeneratorPage({ setPage }) {
         setFormData({ ...formData, [field]: newList })
     }
 
-    useEffect(() => {
-        // Check if resume exists
-        api.get('/get_resume').then(r => setResumeExists(r.data.resume_exists))
-        // Load jobs for job-specific mode
+    const loadJobs = useCallback(() => {
         api.get('/get_jobs').then(r => setJobs(r.data || []))
-
+        api.get('/get_resume').then(r => setResumeExists(r.data.resume_exists))
     }, [])
+
+    useEffect(() => {
+        loadJobs()
+        window.addEventListener('focus', loadJobs)
+        return () => window.removeEventListener('focus', loadJobs)
+    }, [loadJobs])
 
     const handleGenerate = async (e) => {
         if (e) e.preventDefault()
@@ -408,6 +429,16 @@ export default function GeneratorPage({ setPage }) {
                                 <label className="form-label">Portfolio</label>
                                 <input className="form-input" value={formData.portfolio_link} onChange={e => setFormData({ ...formData, portfolio_link: e.target.value })} placeholder="portfolio.com" />
                             </div>
+                            <div className="form-group">
+                                <label className="form-label">Date of Birth (DD/MM/YYYY)*</label>
+                                <input 
+                                    type="date" 
+                                    className={`form-input date-input ${formData.date_of_birth ? 'has-value' : ''}`}
+                                    value={normalizeToInputDate(formData.date_of_birth)} 
+                                    onChange={e => setFormData({ ...formData, date_of_birth: e.target.value })} 
+                                    onClick={(e) => e.target.showPicker?.()} 
+                                />
+                            </div>
                         </div>
 
                         <div className="form-group">
@@ -451,19 +482,19 @@ export default function GeneratorPage({ setPage }) {
                                     </div>
                                     <div className="gen-form-grid" style={{ marginTop: '0.75rem' }}>
                                         <div className="form-group">
-                                            <label className="form-label-xs">From Date</label>
+                                            <label className="form-label-xs">From Date (DD/MM/YYYY)</label>
                                             <input 
                                                 type="date" 
                                                 className={`form-input date-input ${company.from ? 'has-value' : ''}`}
                                                 max={currentMonth + "-31"} 
-                                                value={company.from} 
+                                                value={normalizeToInputDate(company.from)} 
                                                 onChange={e => updateListItem('companies', idx, 'from', e.target.value)} 
                                                 onClick={(e) => e.target.showPicker?.()} 
                                             />
                                         </div>
                                         <div className="form-group">
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <label className="form-label-xs">To Date</label>
+                                                <label className="form-label-xs">To Date (DD/MM/YYYY)</label>
                                                 <label style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
                                                     <input type="checkbox" checked={company.to === 'Present'} onChange={e => updateListItem('companies', idx, 'to', e.target.checked ? 'Present' : '')} />
                                                     Present
@@ -473,7 +504,7 @@ export default function GeneratorPage({ setPage }) {
                                                 type="date" 
                                                 className={`form-input date-input ${company.to && company.to !== 'Present' ? 'has-value' : ''}`}
                                                 max={currentMonth + "-31"} 
-                                                value={company.to === 'Present' ? '' : company.to} 
+                                                value={company.to === 'Present' ? '' : normalizeToInputDate(company.to)} 
                                                 onChange={e => updateListItem('companies', idx, 'to', e.target.value)} 
                                                 disabled={company.to === 'Present'} 
                                                 onClick={(e) => e.target.showPicker?.()} 
@@ -528,19 +559,19 @@ export default function GeneratorPage({ setPage }) {
                                             <input className="form-input" value={edu.subject} onChange={e => updateListItem('educations', idx, 'subject', e.target.value)} placeholder="e.g. Computer Science" />
                                         </div>
                                         <div className="form-group">
-                                            <label className="form-label-xs">From Date</label>
+                                            <label className="form-label-xs">From Date (DD/MM/YYYY)</label>
                                             <input 
                                                 type="date" 
                                                 className={`form-input date-input ${edu.college_from ? 'has-value' : ''}`}
                                                 max={futureMonth + "-12-31"} 
-                                                value={edu.college_from} 
+                                                value={normalizeToInputDate(edu.college_from)} 
                                                 onChange={e => updateListItem('educations', idx, 'college_from', e.target.value)} 
                                                 onClick={(e) => e.target.showPicker?.()} 
                                             />
                                         </div>
                                         <div className="form-group">
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <label className="form-label-xs">To Date</label>
+                                                <label className="form-label-xs">To Date (DD/MM/YYYY)</label>
                                                 <label style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
                                                     <input type="checkbox" checked={edu.college_to === 'Present'} onChange={e => updateListItem('educations', idx, 'college_to', e.target.checked ? 'Present' : '')} />
                                                     Present
@@ -550,7 +581,7 @@ export default function GeneratorPage({ setPage }) {
                                                 type="date" 
                                                 className={`form-input date-input ${edu.college_to && edu.college_to !== 'Present' ? 'has-value' : ''}`}
                                                 max={futureMonth + "-12-31"} 
-                                                value={edu.college_to === 'Present' ? '' : edu.college_to} 
+                                                value={edu.college_to === 'Present' ? '' : normalizeToInputDate(edu.college_to)} 
                                                 onChange={e => updateListItem('educations', idx, 'college_to', e.target.value)} 
                                                 disabled={edu.college_to === 'Present'} 
                                                 onClick={(e) => e.target.showPicker?.()} 

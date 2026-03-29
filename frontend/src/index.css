@@ -467,6 +467,28 @@ select {
   min-height: 120px;
 }
 
+/* ── DATE INPUTS ─────────────────────────────────────────────── */
+.date-input {
+  cursor: pointer;
+  position: relative;
+}
+
+.date-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  padding: 2px;
+  filter: var(--calendar-icon-filter);
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.date-input:hover::-webkit-calendar-picker-indicator {
+  opacity: 1;
+}
+
+.date-input.has-value {
+  font-weight: 500;
+}
+
 /* ── BADGES ────────────────────────────────────────────────────── */
 .badge {
   display: inline-flex;

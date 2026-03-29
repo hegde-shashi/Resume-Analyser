@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import api from '../api'
 import toast from 'react-hot-toast'
 import { Send, Bot } from 'lucide-react'
@@ -15,6 +15,11 @@ export default function ChatPage() {
     const [loading, setLoading] = useState(false)
     const bottomRef = useRef()
     const inputRef = useRef()
+    const selectedJobRef = useRef(selectedJob)
+
+    useEffect(() => {
+        selectedJobRef.current = selectedJob
+    }, [selectedJob])
 
     useEffect(() => {
         if (inputRef.current) {
@@ -25,16 +30,16 @@ export default function ChatPage() {
         }
     }, [input])
 
-    function handleSelectJob(newJobId) {
-        const id = String(newJobId)
-        setSelectedJob(id)
-        if (id) {
-            localStorage.setItem('lastChatJobId', id)
-        }
+    const handleSelectJob = useCallback((newJobId) => {
         if (!newJobId) {
+            setSelectedJob('')
             setMessages([])
             return
         }
+        const id = String(newJobId)
+        setSelectedJob(id)
+        localStorage.setItem('lastChatJobId', id)
+
         const saved = sessionStorage.getItem(`chat_${newJobId}`)
         if (saved) {
             try {
@@ -45,22 +50,49 @@ export default function ChatPage() {
         } else {
             setMessages([])
         }
-    }
+    }, [])
+
+    const loadJobs = useCallback((isInitial = false) => {
+        api.get('/get_jobs').then(r => {
+            const data = r.data || []
+            setJobs(data)
+
+            if (data.length === 0) {
+                if (selectedJobRef.current) handleSelectJob('')
+                return
+            }
+
+            const savedId = localStorage.getItem('lastChatJobId')
+            const savedExists = data.find(j => String(j.id) === String(savedId))
+
+            if (isInitial) {
+                if (savedExists) handleSelectJob(savedId)
+                else handleSelectJob(data[0].id)
+            } else {
+                const currentId = selectedJobRef.current
+                const currentExists = data.find(j => String(j.id) === String(currentId))
+                if (currentId && !currentExists) {
+                    if (savedExists) handleSelectJob(savedId)
+                    else handleSelectJob(data[0].id)
+                }
+            }
+        }).catch(err => {
+            console.error("Failed to load jobs:", err)
+        })
+    }, [handleSelectJob])
 
     useEffect(() => {
-        api.get('/get_jobs').then(r => {
-            setJobs(r.data)
-            const savedId = localStorage.getItem('lastChatJobId')
-            const exists = r.data.find(j => String(j.id) === String(savedId))
-            
-            // If we have a valid saved job, always call handleSelectJob to load messages
-            if (exists) {
-                handleSelectJob(savedId)
-            } else if (r.data.length > 0) {
-                handleSelectJob(r.data[0].id)
-            }
-        })
-    }, [])
+        loadJobs(true) // Initial load
+
+        const onFocus = () => loadJobs()
+        window.addEventListener('focus', onFocus)
+        const interval = setInterval(() => loadJobs(), 30000)
+
+        return () => {
+            window.removeEventListener('focus', onFocus)
+            clearInterval(interval)
+        }
+    }, [loadJobs])
 
     useEffect(() => {
         if (selectedJob && messages.length > 0) {
@@ -217,26 +249,26 @@ export default function ChatPage() {
                         ) : (
                             <div className="chat-center-wrapper" style={{ display: 'flex', flexDirection: 'column' }}>
                                 {messages.map((m, i) => (
-                                    <div key={i} className={`chat-msg ${m.role}`} style={{ marginBottom: i === messages.length - 1 ? 0 : '1rem' }}>
+                                    <div key={`${m.role}-${i}`} className={`chat-msg ${m.role}`} style={{ marginBottom: i === messages.length - 1 ? 0 : '1rem' }}>
                                         <div className="chat-msg-bubble" style={m.role === 'user' ? { whiteSpace: 'pre-wrap' } : {}}>
                                             {m.role === 'assistant' ? (
                                                 <ReactMarkdown
                                                     remarkPlugins={[remarkGfm]}
                                                     components={{
-                                                        p: ({ node, ...props }) => <p style={{ margin: '0 0 0.5rem 0', '&:last-child': { margin: 0 } }} {...props} />,
+                                                        p: ({ node, ...props }) => <p style={{ margin: '0 0 0.5rem 0' }} {...props} />,
                                                         ul: ({ node, ...props }) => <ul style={{ margin: '0 0 0.5rem 0', paddingLeft: '1.2rem' }} {...props} />,
                                                         li: ({ node, ...props }) => <li style={{ marginBottom: '0.2rem' }} {...props} />,
-                                                        a: ({ node, children, ...props }) => <a target="_blank" rel="noopener noreferrer" {...props}>{children}</a>
+                                                        a: ({ node, ...props }) => <a target="_blank" rel="noopener noreferrer" {...props} />
                                                     }}
                                                 >
                                                     {m.text}
                                                 </ReactMarkdown>
                                             ) : (
-                                                <ReactMarkdown 
+                                                <ReactMarkdown
                                                     remarkPlugins={[remarkGfm]}
                                                     components={{
                                                         p: ({ node, ...props }) => <p style={{ margin: 0 }} {...props} />,
-                                                        a: ({ node, children, ...props }) => <a target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }} {...props}>{children}</a>
+                                                        a: ({ node, ...props }) => <a target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }} {...props} />
                                                     }}
                                                 >
                                                     {m.text}
@@ -272,7 +304,7 @@ export default function ChatPage() {
                                 boxShadow: '0 8px 32px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column',
                                 gap: '2px', minWidth: '180px', zIndex: 100, animation: 'slideUp 0.2s ease-out'
                             }}>
-                                <div 
+                                <div
                                     onClick={() => setInput('/interview ')}
                                     style={{
                                         padding: '0.6rem 0.75rem', borderRadius: '8px', cursor: 'pointer',
@@ -284,7 +316,7 @@ export default function ChatPage() {
                                     <span style={{ fontStyle: 'italic', fontWeight: 700, color: 'var(--accent)', fontSize: '0.9rem' }}>/interview</span>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Start mock interview</span>
                                 </div>
-                                <div 
+                                <div
                                     onClick={() => setInput('/normal ')}
                                     style={{
                                         padding: '0.6rem 0.75rem', borderRadius: '8px', cursor: 'pointer',
@@ -319,7 +351,7 @@ export default function ChatPage() {
                                     style={{
                                         flex: 1, border: 'none', background: 'transparent', outline: 'none',
                                         padding: '0.6rem 0', minHeight: '24px', maxHeight: '150px', resize: 'none',
-                                        fontFamily: 'inherit', fontSize: '0.95rem', 
+                                        fontFamily: 'inherit', fontSize: '0.95rem',
                                         color: input.startsWith('/interview') ? 'var(--accent)' : 'var(--text-primary)',
                                         fontStyle: input.startsWith('/interview') ? 'italic' : 'normal',
                                         fontWeight: input.startsWith('/normal') ? '700' : 'normal',
@@ -328,13 +360,11 @@ export default function ChatPage() {
                                     rows={1}
                                 />
                             </div>
-                            <button className="btn btn-primary btn-icon" onClick={send} disabled={!job || loading || !input.trim()} style={{ borderRadius: '50%', padding: '0.7rem', flexShrink: 0, alignSelf: 'flex-end'}}>
+                            <button className="btn btn-primary btn-icon" onClick={send} disabled={!job || loading || !input.trim()} style={{ borderRadius: '50%', padding: '0.7rem', flexShrink: 0, alignSelf: 'flex-end' }}>
                                 <Send size={18} />
                             </button>
                         </div>
-                        <div style={{ textAlign: 'center', fontSize: '0.7rem', color: 'var(--text-muted)', margin: '0.75rem' }}>
-                            AI can make mistakes. Verify important information.
-                        </div>
+                        {/* AI Warning Removed */}
                     </div>
                 </div>
             </div>

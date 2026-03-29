@@ -9,5 +9,6 @@ class Resume(db.Model):
     filename = db.Column(db.String(200))
     uploaded_at = db.Column(db.DateTime)
     text_chunk = db.Column(db.Text)
+    structured_details = db.Column(db.JSON)
     chroma_collection = db.Column(db.String(200))
     created_at = db.Column(db.DateTime, server_default=db.func.now())

@@ -10,12 +10,14 @@ import ResumePage from './pages/ResumePage'
 import GeneratorPage from './pages/GeneratorPage'
 import JobsPage from './pages/JobsPage'
 import ChatPage from './pages/ChatPage'
+import ApplicationDetails from './pages/ApplicationDetails'
 import Sidebar from './components/Sidebar'
 import Topbar from './components/Topbar'
 
 const PAGE_TITLES = {
   dashboard: 'Dashboard',
   resume: 'My Resume',
+  application: 'Application Details',
   jobs: 'Job Tracker',
   generator: 'Resume Generator',
   chat: 'AI Chat Assistant',
@@ -39,6 +41,7 @@ function AppShell() {
   const PageComponent = {
     dashboard: Dashboard,
     resume: ResumePage,
+    application: ApplicationDetails,
     jobs: JobsPage,
     generator: GeneratorPage,
     chat: ChatPage,

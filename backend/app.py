@@ -6,7 +6,7 @@ try:
 except ImportError:
     pass
 
-from flask import Flask
+from flask import Flask, jsonify
 from backend.database.db import db
 from backend.config import DB_USER, DB_HOST, DB_PASSWORD, DB_NAME, JWT_SECRET_KEY, PERSISTENT_DIR
 import os
@@ -92,6 +92,7 @@ def check_migrations():
 
     # Resume table migrations
     safe_add_column("resume", "created_at", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    safe_add_column("resume", "structured_details", "TEXT")
 
     # Analysis table migrations (CRITICAL FIX)
     safe_add_column("analysis", "created_at", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
@@ -168,8 +169,14 @@ def user_lookup_callback(_jwt_header, jwt_data):
     from backend.models.user_model import User
     try:
         identity = jwt_data["sub"]
-        return User.query.get(int(identity))
-    except (ValueError, TypeError, Exception):
+        print(f"DEBUG: Authenticating user ID: {identity}")
+        user = db.session.get(User, int(identity))
+        if not user:
+            print(f"DEBUG: User ID {identity} not found in DB!")
+            logging.warning(f"JWT identity {identity} not found in database.")
+        return user
+    except Exception as e:
+        print(f"DEBUG: Auth error: {e}")
         return None
 
 
@@ -177,6 +184,7 @@ def user_lookup_callback(_jwt_header, jwt_data):
 @jwt.invalid_token_loader
 def unauthorized_callback(error_string):
     """Return JSON for unauthorized/invalid requests so frontend can log out."""
+    print(f"DEBUG: Denying access. Reason: {error_string}")
     return jsonify({"error": "Unauthorized", "details": str(error_string)}), 401
 
 app.register_blueprint(auth_bp)

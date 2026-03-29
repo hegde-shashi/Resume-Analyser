@@ -7,6 +7,7 @@ from backend.models.resume_model import Resume
 from backend.services.resume_parser import get_resume_text
 from backend.database.chroma_db import store_resume_embeddings, delete_resume_embeddings
 from backend.services.resume_check import validate_resume
+from backend.services.resume_extractor import extract_resume_details
 from backend.ai.llm_client import get_llm, handle_llm_error
 
 resume_bp = Blueprint("resume", __name__)
@@ -98,3 +99,74 @@ def delete_resume():
         db.session.rollback()
         logging.error(f"Error deleting resume: {e}")
         return {"error": "Failed to delete resume. Please try again."}, 500
+
+
+@resume_bp.route("/get_resume_details", methods=["POST"])
+@jwt_required()
+def get_resume_details():
+    user_id = int(get_jwt_identity())
+    resume = Resume.query.filter_by(user_id=user_id).first()
+    
+    if not resume:
+        return {"error": "Resume not found. Please upload a resume first."}, 404
+        
+    data = request.get_json() or {}
+    force_refresh = data.get("force_refresh", False)
+    
+    if resume.structured_details and not force_refresh:
+        details = resume.structured_details
+        if isinstance(details, str):
+            import json
+            try:
+                details = json.loads(details)
+            except Exception:
+                details = {}
+        return jsonify(details)
+        
+    try:
+        llm_config = data.get("llm_config", data)
+        llm = get_llm(llm_config)
+        details = extract_resume_details(llm, resume.text_chunk)
+        
+        resume.structured_details = details
+        db.session.commit()
+        
+        return jsonify(details)
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error extracting resume details: {e}")
+        return {"error": "Failed to extract details from resume."}, 500
+
+
+@resume_bp.route("/update_resume_details", methods=["POST"])
+@jwt_required()
+def update_resume_details():
+    user_id = int(get_jwt_identity())
+    resume = Resume.query.filter_by(user_id=user_id).first()
+    
+    if not resume:
+        return {"error": "Resume record not found."}, 404
+        
+    data = request.get_json()
+    if not data:
+        return {"error": "No data provided."}, 400
+        
+    try:
+        current_details = resume.structured_details or {}
+        if isinstance(current_details, str):
+            import json
+            try:
+                current_details = json.loads(current_details)
+            except Exception:
+                current_details = {}
+            
+        current = dict(current_details)
+        current.update(data)
+        resume.structured_details = current
+        db.session.commit()
+        
+        return jsonify({"message": "Details updated successfully", "details": current})
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error updating resume details: {e}")
+        return {"error": "Failed to update details."}, 500

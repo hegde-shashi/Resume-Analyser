@@ -18,7 +18,7 @@ export default function Dashboard({ setPage }) {
     const [resume, setResume] = useState(null)
     const [loading, setLoading] = useState(true)
 
-    const loadData = () => {
+    const loadData = useCallback(() => {
         Promise.all([
             api.get('/get_jobs'),
             api.get('/get_resume'),
@@ -26,7 +26,7 @@ export default function Dashboard({ setPage }) {
             setJobs(j.data)
             setResume(r.data)
         }).finally(() => setLoading(false))
-    }
+    }, [])
 
     useEffect(() => {
         loadData()
@@ -42,7 +42,7 @@ export default function Dashboard({ setPage }) {
             window.removeEventListener('focus', onFocus)
             clearInterval(interval)
         }
-    }, [])
+    }, [loadData])
 
     const counts = jobs.reduce((acc, j) => {
         acc[j.progress] = (acc[j.progress] || 0) + 1

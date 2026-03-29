@@ -1,8 +1,8 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 
 import api from '../api'
 import toast from 'react-hot-toast'
-import { Plus, Trash2, FileText, MapPin, Briefcase, ChevronDown, ChevronUp, RefreshCw, Mail, FileSignature } from 'lucide-react'
+import { Plus, Trash2, FileText, MapPin, Briefcase, ChevronDown, ChevronUp, RefreshCw, Mail, FileSignature, Search } from 'lucide-react'
 import { useSettings } from '../context/SettingsContext'
 import ConfirmModal from '../components/ConfirmModal'
 import ReactMarkdown from 'react-markdown'
@@ -442,9 +442,10 @@ export default function JobsPage() {
     const [generatingMail, setGeneratingMail] = useState(false)
     const [coverLetterResult, setCoverLetterResult] = useState(null)
     const [generatingCoverLetter, setGeneratingCoverLetter] = useState(false)
+    const [searchQuery, setSearchQuery] = useState('')
     const { llmPayload } = useSettings()
 
-    const load = () => api.get('/get_jobs').then(r => setJobs(r.data)).finally(() => setLoading(false))
+    const load = useCallback(() => api.get('/get_jobs').then(r => setJobs(r.data)).finally(() => setLoading(false)), [])
     useEffect(() => {
         load()
         if (sessionStorage.getItem('openAddJob') === 'true') {
@@ -463,7 +464,7 @@ export default function JobsPage() {
             window.removeEventListener('focus', onFocus)
             clearInterval(interval)
         }
-    }, [])
+    }, [load])
 
     const remove = (id) => setJobs(js => js.filter(j => j.id !== id))
     const changeProgress = (id, progress) => setJobs(js => js.map(j => j.id === id ? { ...j, progress } : j))
@@ -533,17 +534,50 @@ export default function JobsPage() {
     }
 
 
+    const filteredJobs = jobs.filter(j => {
+        const q = searchQuery.toLowerCase().trim();
+        if (!q) return true;
+        
+        const searchableFields = [
+            j.company,
+            j.job_title,
+            j.job_id,
+            j.location,
+            j.job_type,
+            j.experience_required,
+            ...toList(j.skills_required),
+            ...toList(j.preferred_skills),
+            ...toList(j.responsibilities),
+            ...toList(j.education)
+        ];
+
+        return searchableFields.some(field => 
+            String(field || '').toLowerCase().includes(q)
+        );
+    });
+
     if (loading) return <div className="loading-center"><div className="spinner spinner-lg" /></div>
 
     return (
         <div>
-            <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+            <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
                     <h2 className="mobile-hidden">My Jobs</h2>
                     <p>{jobs.length} job{jobs.length !== 1 ? 's' : ''} tracked</p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                    <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flex: 1, justifyContent: 'flex-end', minWidth: '300px' }}>
+                    <div className="search-bar-container" style={{ position: 'relative', width: '100%', maxWidth: '320px' }}>
+                        <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                        <input 
+                            type="text" 
+                            className="form-input" 
+                            placeholder="Search by company, title, skills..." 
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            style={{ paddingLeft: '36px', width: '100%', height: '38px', fontSize: '0.875rem' }}
+                        />
+                    </div>
+                    <button className="btn btn-primary" onClick={() => setShowAdd(true)} style={{ height: '38px' }}>
                         <Plus size={16} /> Add Job
                     </button>
                 </div>
@@ -555,14 +589,20 @@ export default function JobsPage() {
                     <h3>No jobs yet</h3>
                     <p>Click "Add Job" to track your first application</p>
                 </div>
+            ) : filteredJobs.length === 0 ? (
+                <div className="empty-state" style={{ padding: '4rem 2rem' }}>
+                    <Search size={48} style={{ color: 'var(--text-muted)', marginBottom: '1rem', opacity: 0.5 }} />
+                    <h3>No matches found</h3>
+                    <p>We couldn't find any jobs matching "{searchQuery}"</p>
+                    <button className="btn btn-ghost" onClick={() => setSearchQuery('')} style={{ marginTop: '0.5rem' }}>Clear Search</button>
+                </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {jobs.map(j => (
+                    {filteredJobs.map(j => (
                         <JobCard key={j.id} job={j}
                             onDelete={remove} onProgressChange={changeProgress} onAnalyse={analyse}
                             onMail={generateMail} onCoverLetter={generateCoverLetter}
                             onReprocess={reprocess} />
-
                     ))}
                 </div>
             )}

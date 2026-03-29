@@ -15,11 +15,25 @@ let customValidationPending = false;
 let isCurrentPageBlocked = false;
 let isCurrentTabSupported = false;
 let statusPollingTimeout = null;
-let lastErrorConfig = null; // Stores { model, api_key } when error was first shown
+let lastErrorConfig = null;
+let currentProfile = null;
 
 
-window.onload = () => {
-    const token = getStoredToken();
+window.onload = async () => {
+    // Migration: Try to move old localStorage token to new storage once
+    const oldToken = localStorage.getItem("token");
+    if (oldToken) {
+        await chrome.storage.local.set({ token: oldToken });
+        localStorage.removeItem("token");
+    }
+
+    const token = await getStoredToken();
+    
+    // Sync profile to ensure sidebar is ready
+    const stored = await getStoredProfile();
+    if (!stored && token) {
+        await loadProfile();
+    }
 
     if (token) {
         showApp();
@@ -37,9 +51,101 @@ function showApp() {
     document.getElementById("loginView").style.display = "none";
     document.getElementById("appView").style.display = "block";
     clearStatus();
-    document.getElementById("apiModeSelect").value = llmMode;
+    const modeSelect = document.getElementById("apiModeSelect");
+    if (modeSelect) modeSelect.value = llmMode;
     applyApiModeSelection();
     initializePopupState();
+    
+    // Check if form exists to enable/disable button
+    checkPageForForm();
+    loadProfile();
+    setupTabs();
+}
+
+function setupTabs() {
+    const tabAnalyze = document.getElementById("tabAnalyze");
+    const tabProfile = document.getElementById("tabProfile");
+    if (tabAnalyze) tabAnalyze.onclick = () => switchTab("analyze");
+    if (tabProfile) tabProfile.onclick = () => switchTab("profile");
+}
+
+function switchTab(tabId) {
+    const tabAnalyze = document.getElementById("tabAnalyze");
+    const viewAnalyze = document.getElementById("analyzeView");
+    const tabProfile = document.getElementById("tabProfile");
+    const viewProfile = document.getElementById("profileView");
+
+    if (tabAnalyze) tabAnalyze.classList.remove("active");
+    if (viewAnalyze) viewAnalyze.classList.remove("active");
+    if (tabProfile) tabProfile.classList.remove("active");
+    if (viewProfile) viewProfile.classList.remove("active");
+    
+    if (tabId === "analyze") {
+        if (tabAnalyze) tabAnalyze.classList.add("active");
+        if (viewAnalyze) viewAnalyze.classList.add("active");
+    } else {
+        if (tabProfile) tabProfile.classList.add("active");
+        if (viewProfile) viewProfile.classList.add("active");
+        loadProfile();
+    }
+}
+
+async function checkPageForForm() {
+    const btn = document.getElementById("autofill");
+    if (!btn) return;
+    
+    try {
+        const tab = await getActiveTab();
+        if (!tab || !tab.id) return;
+
+        // Check across all frames since Workday uses iframes
+        const results = await chrome.scripting.executeScript({
+            target: { tabId: tab.id, allFrames: true },
+            func: () => {
+                const inputs = document.querySelectorAll('input:not([type="hidden"]), select, textarea');
+                return inputs.length >= 3;
+            }
+        });
+
+        const hasForm = results.some(r => r.result);
+
+        if (hasForm) {
+            btn.disabled = false;
+            btn.title = "Form detected! Ready to fill.";
+            btn.style.opacity = "1";
+            
+            // Auto-switch to FILL tab as requested
+            switchTab("profile");
+        } else {
+            btn.disabled = true;
+            btn.title = "No application form detected on this page.";
+            btn.style.opacity = "0.5";
+        }
+    } catch(e) {
+        console.error("checkPageForForm error", e);
+        btn.disabled = true;
+    }
+}
+
+// Global listener for floating sidebar
+chrome.runtime.onMessage.addListener((request) => {
+    if (request.action === "trigger_autofill") {
+        document.getElementById("autofill").click();
+    }
+});
+
+function switchTab(tabId) {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+    
+    if (tabId === "analyze") {
+        document.getElementById("tabAnalyze").classList.add("active");
+        document.getElementById("analyzeView").classList.add("active");
+    } else {
+        document.getElementById("tabProfile").classList.add("active");
+        document.getElementById("profileView").classList.add("active");
+        loadProfile();
+    }
 }
 
 function setStatus(message, type = "info", tooltip = "") {
@@ -62,9 +168,24 @@ function clearStatus() {
     status.textContent = "";
 }
 
-function getStoredToken() {
-    const token = (localStorage.getItem("token") || "").trim();
-    return token || null;
+async function getStoredToken() {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['token'], (res) => resolve(res.token || null));
+    });
+}
+
+function setStoredToken(token) {
+    chrome.storage.local.set({ token: token });
+}
+
+async function getStoredProfile() {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['profile'], (res) => resolve(res.profile || null));
+    });
+}
+
+function setStoredProfile(data) {
+    chrome.storage.local.set({ profile: data });
 }
 
 function extractAuthToken(data) {
@@ -224,26 +345,33 @@ function countFilledCoreFields(job) {
 }
 
 function setVisible(id, isVisible) {
-    document.getElementById(id).style.display = isVisible ? "block" : "none";
+    const el = document.getElementById(id);
+    if (el) el.style.display = isVisible ? "block" : "none";
 }
 
 function setModelVisibility(isVisible) {
     const display = isVisible ? "block" : "none";
-    document.querySelector('label[for="modelSelect"]').style.display = display;
-    document.getElementById("modelSelect").style.display = display;
-    document.getElementById("modelError").style.display = display;
+    const label = document.querySelector('label[for="modelSelect"]');
+    if (label) label.style.display = display;
+    const select = document.getElementById("modelSelect");
+    if (select) select.style.display = display;
+    const error = document.getElementById("modelError");
+    if (error) error.style.display = display;
 }
 
 function setApiModeControlVisibility(isVisible) {
     const display = isVisible ? "block" : "none";
-    document.querySelector('label[for="apiModeSelect"]').style.display = display;
-    document.getElementById("apiModeSelect").style.display = display;
+    const label = document.querySelector('label[for="apiModeSelect"]');
+    if (label) label.style.display = display;
+    const select = document.getElementById("apiModeSelect");
+    if (select) select.style.display = display;
     if (!isVisible) {
-        document.getElementById("apiKeyError").style.display = "none";
-    }
-    if (!isVisible) {
-        document.getElementById("customApiKey").style.display = "none";
-        document.getElementById("validateApiKey").style.display = "none";
+        const apiKeyError = document.getElementById("apiKeyError");
+        if (apiKeyError) apiKeyError.style.display = "none";
+        const customApiKey = document.getElementById("customApiKey");
+        if (customApiKey) customApiKey.style.display = "none";
+        const validateApiKey = document.getElementById("validateApiKey");
+        if (validateApiKey) validateApiKey.style.display = "none";
     } else {
         const shouldShowCustomControls = getApiModeSelection() === USER_API_MODE && customValidationPending;
         setApiModeVisibility(shouldShowCustomControls);
@@ -251,14 +379,18 @@ function setApiModeControlVisibility(isVisible) {
 }
 
 function setApiModeVisibility(isUserMode) {
-    document.getElementById("customApiKey").style.display = isUserMode ? "block" : "none";
-    document.getElementById("validateApiKey").style.display = isUserMode ? "block" : "none";
+    const customApiKey = document.getElementById("customApiKey");
+    if (customApiKey) customApiKey.style.display = isUserMode ? "block" : "none";
+    const validateApiKey = document.getElementById("validateApiKey");
+    if (validateApiKey) validateApiKey.style.display = isUserMode ? "block" : "none";
 }
 
 function setApiKeyError(message = "") {
     const node = document.getElementById("apiKeyError");
-    node.innerText = message;
-    node.style.display = message ? "block" : "none";
+    if (node) {
+        node.innerText = message;
+        node.style.display = message ? "block" : "none";
+    }
 }
 
 function setModelSelectEnabled(enabled) {
@@ -553,7 +685,8 @@ function updateActionButtons() {
     analyseButton.textContent = "Analyse Resume Match";
 
     const retryBtn = document.getElementById("retryBtn");
-    retryBtn.textContent = "Try Different Settings & Retry";
+    if (retryBtn) {
+        retryBtn.textContent = "Try Different Settings & Retry";
 
     const hasError = currentJob && currentJob.error_message && !currentJob.is_parsed;
     
@@ -583,6 +716,7 @@ function updateActionButtons() {
     } else {
         retryBtn.style.display = "none";
         lastErrorConfig = null; // Clear if error is gone
+    }
     }
 
 
@@ -766,7 +900,7 @@ async function initializePopupState() {
 }
 
 async function fetchExistingJobForCurrentUrl() {
-    const token = getStoredToken();
+    const token = await getStoredToken();
 
     if (!token || !activeJobLink) {
         return;
@@ -800,8 +934,9 @@ async function fetchExistingJobForCurrentUrl() {
 
         if (!res.ok) {
             if (res.status === 401) {
-                localStorage.removeItem("token");
-                showLogin();
+                chrome.storage.local.remove(["token"], () => {
+                    showLogin();
+                });
             }
             return;
         }
@@ -869,10 +1004,11 @@ async function runAnalysis({ silent = false } = {}) {
             throw new Error("Validate custom API key before analysis.");
         }
 
-        const token = getStoredToken();
+        const token = await getStoredToken();
         if (!token) {
-            localStorage.removeItem("token");
-            showLogin();
+            chrome.storage.local.remove(["token"], () => {
+                showLogin();
+            });
             throw new Error("Session expired. Please login again.");
         }
 
@@ -906,8 +1042,9 @@ async function runAnalysis({ silent = false } = {}) {
         const { data: result } = await parseApiResponse(res);
 
         if (res.status === 401) {
-            localStorage.removeItem("token");
-            showLogin();
+            chrome.storage.local.remove(["token"], () => {
+                showLogin();
+            });
             throw new Error("Unauthorized (401). Please login again.");
         }
 
@@ -929,7 +1066,7 @@ async function runAnalysis({ silent = false } = {}) {
 }
 
 async function saveCurrentJob({ silent = false, overrides = null } = {}) {
-    const token = getStoredToken();
+    const token = await getStoredToken();
     const model = getSelectedModel();
 
     if (!currentJob && !overrides) {
@@ -961,8 +1098,9 @@ async function saveCurrentJob({ silent = false, overrides = null } = {}) {
     const { data } = await parseApiResponse(res);
 
     if (res.status === 401) {
-        localStorage.removeItem("token");
-        showLogin();
+        chrome.storage.local.remove(["token"], () => {
+            showLogin();
+        });
         throw new Error("Unauthorized (401). Please login again.");
     }
 
@@ -994,7 +1132,8 @@ document.getElementById("apiModeSelect").onchange = async () => {
     await applyApiModeSelection();
 };
 
-document.getElementById("validateApiKey").onclick = async () => {
+const validateBtn = document.getElementById("validateApiKey");
+if (validateBtn) validateBtn.onclick = async () => {
     if (isBusy) {
         return;
     }
@@ -1032,7 +1171,8 @@ document.getElementById("validateApiKey").onclick = async () => {
     }
 };
 
-document.getElementById("loginBtn").onclick = async () => {
+const loginBtn = document.getElementById("loginBtn");
+if (loginBtn) loginBtn.onclick = async () => {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
 
@@ -1054,8 +1194,9 @@ document.getElementById("loginBtn").onclick = async () => {
         const token = extractAuthToken(data);
 
         if (res.ok && token) {
-            localStorage.setItem("token", token);
+            setStoredToken(token);
             showApp();
+            await loadProfile(); // Sync to storage.local for sidebar
         } else {
             document.getElementById("loginError").innerText =
                 (data && data.error) || getApiError(res, data, "Login failed");
@@ -1066,12 +1207,14 @@ document.getElementById("loginBtn").onclick = async () => {
     }
 };
 
-document.getElementById("send").onclick = async () => {
+const sendBtn = document.getElementById("send");
+if (sendBtn) sendBtn.onclick = async () => {
     if (isBusy) return;
-
     const loading = document.getElementById("loading");
-    loading.innerText = "Extracting page data...";
-    loading.style.display = "block";
+    if (loading) {
+        loading.innerText = "Extracting page data...";
+        loading.style.display = "block";
+    }
     clearStatus();
     setBusyState(true, "Sending data to backend...");
 
@@ -1103,7 +1246,7 @@ document.getElementById("send").onclick = async () => {
 
         console.log("Sending immediate save payload:", payload);
 
-        const token = getStoredToken();
+        const token = await getStoredToken();
         const res = await fetch(`${API}/save_job`, {
             method: "POST",
             headers: {
@@ -1139,7 +1282,8 @@ document.getElementById("send").onclick = async () => {
     }
 };
 
-document.getElementById("analyse").onclick = async () => {
+const analyseBtn = document.getElementById("analyse");
+if (analyseBtn) analyseBtn.onclick = async () => {
     try {
         if (isBusy) {
             return;
@@ -1155,14 +1299,20 @@ document.getElementById("analyse").onclick = async () => {
 };
 
 // Add change listeners to trigger updateActionButtons
-document.getElementById("modelSelect").onchange = () => updateActionButtons();
-document.getElementById("apiModeSelect").onchange = async () => {
+const ms = document.getElementById("modelSelect");
+if (ms) ms.onchange = () => updateActionButtons();
+
+const ams = document.getElementById("apiModeSelect");
+if (ams) ams.onchange = async () => {
     await applyApiModeSelection();
     updateActionButtons();
 };
-document.getElementById("customApiKey").oninput = () => updateActionButtons();
 
-document.getElementById("retryBtn").onclick = async () => {
+const cak = document.getElementById("customApiKey");
+if (cak) cak.oninput = () => updateActionButtons();
+
+const retryBtn = document.getElementById("retryBtn");
+if (retryBtn) retryBtn.onclick = async () => {
 
     if (isBusy || !currentJobId) return;
 
@@ -1176,7 +1326,7 @@ document.getElementById("retryBtn").onclick = async () => {
             api_key: getLlmRequestConfig().api_key || null
         };
 
-        const token = getStoredToken();
+        const token = await getStoredToken();
         const res = await fetch(`${API}/reprocess_job`, {
             method: "POST",
             headers: {
@@ -1205,8 +1355,173 @@ document.getElementById("retryBtn").onclick = async () => {
     }
 };
 
-document.getElementById("logout").onclick = () => {
-    localStorage.removeItem("token");
+const logoutBtn = document.getElementById("logout");
+if (logoutBtn) logoutBtn.onclick = async () => {
+    await chrome.storage.local.clear();
     showLogin();
 };
+
+
+// PROFILE & AUTOFILL LOGIC
+async function loadProfile(force = false) {
+
+    const token = await getStoredToken();
+    if (!token) return;
+
+
+    try {
+        const res = await fetch(`${API}/get_resume_details`, {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ 
+                force_refresh: force,
+                llm_config: getLlmRequestConfig(),
+                model: getSelectedModel()
+            })
+        });
+        
+        const { data, error: parseError } = await parseApiResponse(res);
+        if (parseError) throw new Error(parseError);
+        
+        currentProfile = data;
+        setStoredProfile(data); // SHARE WITH SIDEBAR
+        
+        // Sync Extension DOB input
+        const dobInp = document.getElementById("profileDob");
+        if (dobInp && data.date_of_birth) {
+            dobInp.value = data.date_of_birth;
+        }
+    } catch (err) {
+        console.error("Load error:", err.message);
+    }
+}
+
+// Save DOB if changed in extension
+const dobInp = document.getElementById("profileDob");
+if (dobInp) dobInp.onchange = async () => {
+    const newVal = dobInp.value;
+    if (!newVal || !currentProfile) return;
+    
+    currentProfile.date_of_birth = newVal;
+    setStoredProfile(currentProfile);
+    
+    const token = await getStoredToken();
+    if (!token) return;
+    
+    try {
+        await fetch(`${API}/update_resume_details`, {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ date_of_birth: newVal })
+        });
+    } catch(e) { console.error("Sync error:", e); }
+};
+
+
+function renderProfileForm(data) {
+    // No longer used in simplified UI
+}
+
+
+const editResumeBtn = document.getElementById("editResume");
+if (editResumeBtn) editResumeBtn.onclick = () => {
+    window.open("http://localhost:3000/profile", "_blank");
+};
+
+async function triggerAutofill() {
+    if (!currentProfile) {
+        currentProfile = await getStoredProfile();
+    }
+    if (!currentProfile) {
+        await loadProfile();
+        if (!currentProfile) {
+            setStatus("No profile data found. Please login & upload resume.", "warn");
+            return;
+        }
+    }
+    
+    const btn = document.getElementById("autofill");
+    if (!btn) return;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerText = "Filling...";
+    
+    setStatus("Filling form (checking all frames)...", "info");
+    const tab = await getActiveTab();
+    if (!tab || !tab.id) return;
+
+    try {
+        // Execute autofill logic on ALL frames
+        const results = await chrome.scripting.executeScript({
+            target: { tabId: tab.id, allFrames: true },
+            func: async (data) => {
+                if (typeof window.autofillForm === 'function') {
+                    return await window.autofillForm(data);
+                }
+                return -1; // Marker for "function missing in this frame"
+            },
+            args: [currentProfile]
+        });
+        
+        let anyFrameHasScript = results.some(r => r.result !== -1);
+
+        // FALLBACK: If injection is missing (e.g., first install / reload), try injecting it now
+        if (!anyFrameHasScript) {
+            try {
+                await chrome.scripting.executeScript({
+                    target: { tabId: tab.id, allFrames: true },
+                    files: ["content.js"]
+                });
+                await new Promise(r => setTimeout(r, 400));
+                
+                // Try calling it one more time
+                const results2 = await chrome.scripting.executeScript({
+                    target: { tabId: tab.id, allFrames: true },
+                    func: async (data) => {
+                        if (typeof window.autofillForm === 'function') {
+                            return await window.autofillForm(data);
+                        }
+                        return -1;
+                    },
+                    args: [currentProfile]
+                });
+                
+                anyFrameHasScript = results2.some(r => r.result !== -1);
+                const totalFilled2 = results2.reduce((acc, r) => acc + (r.result > 0 ? r.result : 0), 0);
+                
+                if (totalFilled2 > 0) {
+                    setStatus(`Filled ${totalFilled2} fields across all frames!`, "success");
+                    return; // Done
+                }
+            } catch (err) {
+                console.error("[AF] Manual injection failed:", err);
+            }
+        }
+
+        const totalFilled = results.reduce((acc, r) => acc + (r.result > 0 ? r.result : 0), 0);
+
+        if (totalFilled > 0) {
+            setStatus(`Filled ${totalFilled} fields across all frames!`, "success");
+        } else if (!anyFrameHasScript) {
+            setStatus("Autofill not ready. Try refreshing the page.", "warn");
+        } else {
+            setStatus("No matching fields found. Ensure you are on a form page.", "warn");
+        }
+    } catch (e) {
+        console.error("Autofill error:", e);
+        setStatus("Filling failed. This can happen on some high-security pages.", "warn");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+const autofillBtn = document.getElementById("autofill");
+if (autofillBtn) autofillBtn.onclick = triggerAutofill;
 
