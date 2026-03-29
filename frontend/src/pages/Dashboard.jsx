@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import api from '../api'
 import { useAuth } from '../context/AuthContext'
 import { Briefcase, BarChart2, TrendingUp, ArrowRight } from 'lucide-react'
