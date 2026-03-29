@@ -258,7 +258,7 @@ export default function ChatPage() {
                                                         p: ({ node, ...props }) => <p style={{ margin: '0 0 0.5rem 0' }} {...props} />,
                                                         ul: ({ node, ...props }) => <ul style={{ margin: '0 0 0.5rem 0', paddingLeft: '1.2rem' }} {...props} />,
                                                         li: ({ node, ...props }) => <li style={{ marginBottom: '0.2rem' }} {...props} />,
-                                                        a: ({ node, ...props }) => <a target="_blank" rel="noopener noreferrer" {...props} />
+                                                        a: ({ node, children, ...props }) => <a target="_blank" rel="noopener noreferrer" {...props}>{children}</a>
                                                     }}
                                                 >
                                                     {m.text}
@@ -268,7 +268,7 @@ export default function ChatPage() {
                                                     remarkPlugins={[remarkGfm]}
                                                     components={{
                                                         p: ({ node, ...props }) => <p style={{ margin: 0 }} {...props} />,
-                                                        a: ({ node, ...props }) => <a target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }} {...props} />
+                                                        a: ({ node, children, ...props }) => <a target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }} {...props}>{children}</a>
                                                     }}
                                                 >
                                                     {m.text}

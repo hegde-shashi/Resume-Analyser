@@ -38,7 +38,7 @@ export default function GeneratorPage({ setPage }) {
         // If already YYYY-MM-DD
         if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
         // If MM/YYYY or DD/MM/YYYY
-        const d_m_y = val.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+        const d_m_y = val.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
         if (d_m_y) return `${d_m_y[3]}-${d_m_y[2].padStart(2,'0')}-${d_m_y[1].padStart(2,'0')}`;
         // If Month YYYY (e.g. Aug 2022)
         const moMap = { jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12' };
