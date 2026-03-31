@@ -228,6 +228,9 @@ def update_progress():
 
     job.progress = data["progress"]
     db.session.commit()
+    return {"message": "Progress updated"}
+
+
 @job_bp.route("/update_job", methods=["POST"])
 @jwt_required()
 def update_job():
