@@ -65,7 +65,8 @@ export default function GeneratorPage({ setPage }) {
         projects: [{ title: '', tools_used: '', project_link: '', project_details: '' }],
         educations: [{ field: '', subject: '', college: '', college_from: '', college_to: '' }],
         certificates: [{ name: '', issuer: '' }],
-        job_description: ''
+        job_description: '',
+        job_link: ''
     })
 
     const addListItem = (field) => {
@@ -247,7 +248,8 @@ export default function GeneratorPage({ setPage }) {
                 projects: [{ title: '', tools_used: '', project_link: '', project_details: '' }],
                 educations: [{ field: '', subject: '', college: '', college_from: '', college_to: '' }],
                 certificates: [{ name: '', issuer: '' }],
-                job_description: ''
+                job_description: '',
+                job_link: ''
             })
             setShowModal(false)
             setPreviewData(null)
@@ -653,15 +655,26 @@ export default function GeneratorPage({ setPage }) {
                         </div>
 
                         {selectedJobId === 'manual' && (
-                            <div className="form-group">
-                                <label className="form-label">Paste Job Description</label>
-                                <textarea
-                                    className="form-input"
-                                    rows={6}
-                                    value={formData.job_description || ''}
-                                    onChange={e => setFormData({ ...formData, job_description: e.target.value })}
-                                    placeholder="Paste the target job description here..."
-                                />
+                            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                <div>
+                                    <label className="form-label">Job Link (Optional)</label>
+                                    <input
+                                        className="form-input"
+                                        value={formData.job_link || ''}
+                                        onChange={e => setFormData({ ...formData, job_link: e.target.value })}
+                                        placeholder="Paste the job URL here..."
+                                    />
+                                </div>
+                                <div>
+                                    <label className="form-label">Paste Job Description</label>
+                                    <textarea
+                                        className="form-input"
+                                        rows={6}
+                                        value={formData.job_description || ''}
+                                        onChange={e => setFormData({ ...formData, job_description: e.target.value })}
+                                        placeholder="Paste the target job description here..."
+                                    />
+                                </div>
                             </div>
                         )}
 

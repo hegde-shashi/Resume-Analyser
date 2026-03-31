@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 
 import api from '../api'
 import toast from 'react-hot-toast'
-import { Plus, Trash2, FileText, MapPin, Briefcase, ChevronDown, ChevronUp, RefreshCw, Mail, FileSignature, Search } from 'lucide-react'
+import { Plus, Trash2, FileText, MapPin, Briefcase, ChevronDown, ChevronUp, RefreshCw, Mail, FileSignature, Search, Edit2, Check, X } from 'lucide-react'
 import { useSettings } from '../context/SettingsContext'
 import ConfirmModal from '../components/ConfirmModal'
 import ReactMarkdown from 'react-markdown'
@@ -117,17 +117,24 @@ function AddJobModal({ onClose, onAdded }) {
                             {loading && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>Getting data... this can take a few minutes</div>}
                         </div>
                     ) : (
-                        <div className="form-group">
-                            <label className="form-label">Job Description</label>
-                            <textarea className="form-textarea" style={{ minHeight: 160 }} placeholder="Paste the full job description here…"
-                                value={jdText} onChange={e => setJdText(e.target.value)} />
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
-                                <button className="btn btn-primary" onClick={parse} disabled={loading || !jdText || parsedTab === 'text'}>
-                                    <RefreshCw size={14} className={loading ? 'spin' : ''} /> {loading ? 'Parsing...' : 'Parse'}
-                                </button>
-                                {loading && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Getting data... this can take a few minutes</div>}
+                        <>
+                            <div className="form-group">
+                                <label className="form-label">Job URL (Optional)</label>
+                                <input className="form-input" placeholder="https://careers.example.com/job/123"
+                                    value={link} onChange={e => setLink(e.target.value)} />
                             </div>
-                        </div>
+                            <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                                <label className="form-label">Job Description</label>
+                                <textarea className="form-textarea" style={{ minHeight: 160 }} placeholder="Paste the full job description here…"
+                                    value={jdText} onChange={e => setJdText(e.target.value)} />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
+                                    <button className="btn btn-primary" onClick={parse} disabled={loading || !jdText || parsedTab === 'text'}>
+                                        <RefreshCw size={14} className={loading ? 'spin' : ''} /> {loading ? 'Parsing...' : 'Parse'}
+                                    </button>
+                                    {loading && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Getting data... this can take a few minutes</div>}
+                                </div>
+                            </div>
+                        </>
                     )}
 
                     {parsed && (
@@ -135,6 +142,7 @@ function AddJobModal({ onClose, onAdded }) {
                             <div style={{ fontWeight: 700, marginBottom: '0.75rem', fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Review & Edit</div>
                             {field('Job Title', 'job_title')}
                             {field('Company', 'company')}
+                            {field('Job URL', 'job_link')}
                             {field('Location', 'location')}
                             {field('Job Type', 'job_type')}
                             {field('Experience Required', 'experience_required')}
@@ -233,6 +241,10 @@ function JobCard({ job, onDelete, onProgressChange, onAnalyse, onMail, onCoverLe
     const [updating, setUpdating] = useState(false)
     const [deleteModalOpen, setDeleteModalOpen] = useState(false)
     const [deleting, setDeleting] = useState(false)
+    const [isEditing, setIsEditing] = useState(false)
+    const [editData, setEditData] = useState({ company: job.company || '', job_title: job.job_title || '', job_link: job.job_link || '' })
+    const [savingEdit, setSavingEdit] = useState(false)
+
     const errorRef = useRef(null)
     if (job.error_message && !errorRef.current) {
         errorRef.current = { ...llmPayload }
@@ -259,6 +271,24 @@ function JobCard({ job, onDelete, onProgressChange, onAnalyse, onMail, onCoverLe
         } catch { toast.error('Update failed') } finally { setUpdating(false) }
     }
 
+    async function saveEdit() {
+        setSavingEdit(true)
+        try {
+            await api.post('/update_job', { id: job.id, ...editData })
+            // Directly updating the job object since it's passed as a prop, but better to refresh if needed.
+            // For now, this will update the UI immediately.
+            job.company = editData.company
+            job.job_title = editData.job_title
+            job.job_link = editData.job_link
+            setIsEditing(false)
+            toast.success('Job details updated')
+        } catch {
+            toast.error('Failed to update job')
+        } finally {
+            setSavingEdit(false)
+        }
+    }
+
     async function del() {
         setDeleting(true)
         try {
@@ -281,13 +311,26 @@ function JobCard({ job, onDelete, onProgressChange, onAnalyse, onMail, onCoverLe
             <div className="job-card-header" style={{ minHeight: 0 }}>
                 <div style={{ minWidth: 0, flex: 1 }}>
                     <div className="job-card-title" style={{
-                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', display: 'flex', alignItems: 'center', gap: '0.4rem'
+                        maxWidth: '100%', display: 'flex', alignItems: 'center', gap: '0.4rem'
                     }}>
-                        <span>{job.company || '—'}</span>
-                        {job.job_link && (
-                            <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)' }}>
-                                | <a href={job.job_link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>Link</a>
-                            </span>
+                        {isEditing ? (
+                            <div style={{ display: 'flex', gap: '0.5rem', width: '100%', alignItems: 'center' }}>
+                                <input className="form-input" style={{ height: '28px', fontSize: '0.85rem', flex: 1 }} value={editData.company} onChange={e => setEditData({ ...editData, company: e.target.value })} placeholder="Company" />
+                                <span style={{ color: 'var(--text-muted)' }}>|</span>
+                                <input className="form-input" style={{ height: '28px', fontSize: '0.85rem', flex: 2 }} value={editData.job_link} onChange={e => setEditData({ ...editData, job_link: e.target.value })} placeholder="Job URL" />
+                                <button className="btn btn-ghost btn-xs" onClick={saveEdit} disabled={savingEdit}><Check size={14} color="var(--success)" /></button>
+                                <button className="btn btn-ghost btn-xs" onClick={() => { setIsEditing(false); setEditData({ company: job.company || '', job_title: job.job_title || '', job_link: job.job_link || '' }); }}><X size={14} color="var(--danger)" /></button>
+                            </div>
+                        ) : (
+                            <>
+                                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{job.company || '—'}</span>
+                                {job.job_link && (
+                                    <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                                        | <a href={job.job_link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>Link</a>
+                                    </span>
+                                )}
+                                <button className="btn btn-ghost btn-xs" style={{ marginLeft: '4px', opacity: 0.5 }} onClick={() => setIsEditing(true)}><Edit2 size={12} /></button>
+                            </>
                         )}
                     </div>
                     <div className="job-card-company" style={{
@@ -321,17 +364,13 @@ function JobCard({ job, onDelete, onProgressChange, onAnalyse, onMail, onCoverLe
                                 >
                                     <RefreshCw size={10} /> Retry
                                 </button>
-
                             </div>
                         ) : job.is_parsed === false ? (
-
-
-
-
-
                             <span style={{ color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem' }}>
                                 <RefreshCw size={12} className="spin" /> AI Processing...
                             </span>
+                        ) : isEditing ? (
+                            <input className="form-input" style={{ height: '28px', fontSize: '0.85rem', width: '100%', marginTop: '4px' }} value={editData.job_title} onChange={e => setEditData({ ...editData, job_title: e.target.value })} placeholder="Job Title" />
                         ) : (
                             <>
                                 {job.job_title}

@@ -228,7 +228,27 @@ def update_progress():
 
     job.progress = data["progress"]
     db.session.commit()
-    return {"message": "Progress updated"}
+@job_bp.route("/update_job", methods=["POST"])
+@jwt_required()
+def update_job():
+    user_id = int(get_jwt_identity())
+    data = request.get_json()
+    job_id = data.get("id")
+
+    job = Jobs.query.filter_by(id=job_id, user_id=user_id).first()
+    if not job:
+        return jsonify({"error": "Job not found"}), 404
+
+    # Update only allowed fields
+    if "company" in data:
+        job.company = data["company"]
+    if "job_link" in data:
+        job.job_link = data["job_link"]
+    if "job_title" in data:
+        job.job_title = data["job_title"]
+    
+    db.session.commit()
+    return jsonify({"message": "Job updated successfully"})
 
 
 @job_bp.route("/reprocess_job", methods=["POST"])
