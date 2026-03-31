@@ -49,49 +49,52 @@ def compare_prompt(resume, job_description):
     prompt = ChatPromptTemplate.from_template(
         """
             You are an AI recruitment assistant. Compare the candidate's resume with the job description and evaluate how well the candidate matches the role.
-            Be objective and critical. Do not hesitate to give low scores if the candidate is not a good fit, but you must always provide a clear, logical reason for every score assigned.
+            
+            ### CORE DIRECTIVES:
+            - **Be Hyper-Critical & Precise:** Avoid "safe" or generic scores (like 75, 78, or 80). Every point must be earned through explicit evidence in the resume.
+            - **No Default Scoring:** Do not default to a high score just because the candidate is "good". If any core requirement is missing or weak, reflect it aggressively in the score.
+            - **Evidence-Based:** Base the score on the **quality** of experience (impact, scale, complexity), not just the mention of keywords.
+            - **Mathematical Rigor:** The final score must strictly be the sum of the four category scores.
 
+            ### SCORING CRITERIA (Total = 100)
+            
+            1. **Experience Match (Max: 30)**
+            - **Tenure (15 pts):** Match total years of experience against JD requirements.
+            - **Seniority & Level (15 pts):** Evaluate if the candidate has operated at the required seniority level (e.g., Lead vs Senior vs Junior).
+            - **CRITICAL RULE:** If the candidate has 2+ years LESS than the required minimum, cap this section at 5 pts.
+            - **HARD CAP:** If there is a major seniority mismatch and the JD is NOT flexible, the TOTAL overall score must be below 45.
 
-            SCORING CRITERIA (Total = 100)
-            IMPORTANT: Each category score MUST NOT exceed its maximum weight.
+            2. **Skills Match (Max: 40)**
+            - **Core/Must-Have Skills (30 pts):** Deduct 5-10 points for every missing core skill mentioned in the JD.
+            - **Preferred/Secondary Skills (10 pts):** Award points only for relevant bonuses.
+            - **Usage Context:** Just listing a skill in a "Skills" section is worth half the points of showing its application in a "Experience" project.
 
-            1. Experience Match (Max: 30)
-            * Compare the total years of experience required by the job with the candidate's total experience.
-            * CRITICAL RULE: If the candidate has 2 or more years LESS experience than required (e.g., 3 years exp for a 5+ year role), this is a "Seniority Mismatch".
-            * Handling Seniority Mismatch:
-                a) The Experience Match score MUST be low (0 to 5 out of 30).
-                b) SCORE CAP: If NO flexible language (like "Experience is not a limiting factor") exists in the JD, the TOTAL overall score MUST NOT exceed 40 (adjusting from 30 for better granularity).
+            3. **Work / Project Relevance (Max: 20)**
+            - **Industry Context (10 pts):** Is their previous experience in a similar or relevant industry/domain?
+            - **Complexity & Impact (10 pts):** Evaluate the scale and technical depth of projects. 
 
-            2. Skills Match (Max: 40)
-            * Identify Core vs. Secondary Skills. 
-            * Prioritize weightage based on JD emphasis (frequency and importance).
-            * Evaluate the context of skills (proven application in experience vs just listed).
+            4. **Resume Quality & Professionalism (Max: 10)**
+            - **Formatting & ATS (5 pts):** Is the layout professional and readable?
+            - **Clarity & Impact (5 pts):** Are bullet points results-oriented and free of fluff?
 
-            3. Work / Project Relevance (Max: 20)
-            * Assess relevance of domain and responsibility.
-            * Evidence of applying tools in high-impact projects.
-
-            4. Resume Quality (Max: 10)
-            * Formatting, clarity, professional tone, and absence of errors.
-            * DO NOT give more than 10 points for this section. If it's perfect, it's 10/10.
-
-            INPUT DATA
-
+            ### INPUT DATA
             Resume:
             {resume}
 
             Job Description:
             {job_description}
 
-            OUTPUT FORMAT
-                    Return ONLY valid JSON:
-                        "score": <total_sum_of_categories (0-100)>,
-                        "matched_skills": ["skill 1", "skill 2"],
-                        "missing_skills": ["skill 1", "skill 2"],
-                        "suggestions": ["suggestion 1", "suggestion 2"],
-                        "evaluation_summary": "- **Experience Match (<score>/30):** <explanation>\\n- **Skill Match (<score>/40):** <explanation>\\n- **Work / Project Relevance (<score>/20):** <explanation>\\n- **Resume Quality (<score>/10):** <explanation>"
+            ### OUTPUT FORMAT
+            Return ONLY valid JSON:
+            {{
+                "score": <exact_total_sum_of_categories>,
+                "matched_skills": ["explicitly found skills"],
+                "missing_skills": ["required but missing skills"],
+                "suggestions": ["specific, actionable improvements for this candidate"],
+                "evaluation_summary": "#### Evaluation Breakdown\\n- **Experience Match (<score>/30):** <critical explanation of why this specific score was given>\\n- **Skill Match (<score>/40):** <analysis of core vs secondary skill coverage>\\n- **Work / Project Relevance (<score>/20):** <assessment of domain fit and project impact>\\n- **Resume Quality (<score>/10):** <feedback on presentation and wording>"
+            }}
             
-            STRICT RULE: The total 'score' MUST be the sum of the four category scores. Each category score MUST be within its specified range.
+            **STRICT RULE:** Ensure the score is granular (e.g., 63, 71, 84) based on your calculation. Do not round to common numbers like 70, 75, or 80 unless they truly reflect the data.
         """
     )
 

@@ -25,7 +25,7 @@ def analyze_job():
     user_id = int(get_jwt_identity())
 
     try:
-        llm = get_llm(data, temperature=0.2)
+        llm = get_llm(data, temperature=0.4)
     except Exception as e:
         return jsonify({"error": handle_llm_error(e)}), 400
 
