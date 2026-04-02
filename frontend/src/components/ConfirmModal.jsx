@@ -15,7 +15,7 @@ export default function ConfirmModal({
     if (!isOpen) return null
 
     return createPortal(
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && !loading && onCancel()}>
+        <div className="modal-overlay">
             <div className="modal-box" style={{ maxWidth: 400, margin: 'auto' }}>
                 <div className="modal-header">
                     <h3 style={{ color: isDanger ? 'var(--danger)' : 'inherit' }}>{title}</h3>

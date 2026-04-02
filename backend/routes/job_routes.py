@@ -57,6 +57,11 @@ def parse_job():
         chain = job_description_prompt() | llm
         result = chain.invoke({"job_text": clean_html})
         parsed_data = parse_llm_response(result.content)
+        
+        # Inject the link if it's missing from LLM response
+        if 'job_link' not in parsed_data or not parsed_data['job_link']:
+            parsed_data['job_link'] = link
+            
         return jsonify({"scrape_success": True, "llm_free": True, "job_data": parsed_data})
     except Exception as e:
         # If LLM fails (traffic/free limit), we still return success but with raw content
@@ -74,12 +79,18 @@ def parse_job():
 def parse_jd():
     data = request.json
     jd   = data.get('job_description', '')
+    link = data.get('job_link', '')
 
     try:
         llm = get_llm(data)
         chain = job_description_prompt() | llm
         result = chain.invoke({"job_text": jd})
         parsed_data = parse_llm_response(result.content)
+        
+        # Inject the link if it's missing from LLM response
+        if 'job_link' not in parsed_data or not parsed_data['job_link']:
+            parsed_data['job_link'] = link
+            
         return jsonify({"scrape_success": True, "llm_free": True, "job_data": parsed_data})
     except Exception as e:
         return jsonify({

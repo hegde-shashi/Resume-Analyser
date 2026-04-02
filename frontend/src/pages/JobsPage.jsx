@@ -25,7 +25,7 @@ function AddJobModal({ onClose, onAdded }) {
         setLoading(true)
         try {
             const endpoint = tab === 'link' ? '/parse_job' : '/parse_jd_txt'
-            const body = tab === 'link' ? { job_link: link, ...llmPayload } : { job_description: jdText, ...llmPayload }
+            const body = tab === 'link' ? { job_link: link, ...llmPayload } : { job_description: jdText, job_link: link, ...llmPayload }
             const { data } = await api.post(endpoint, body)
 
             if (data.scrape_success === false) {
@@ -92,7 +92,7 @@ function AddJobModal({ onClose, onAdded }) {
     )
 
     return (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+        <div className="modal-overlay">
             <div className="modal-box">
                 <div className="modal-header">
                     <h3>Add Job</h3>
@@ -482,6 +482,7 @@ export default function JobsPage() {
     const [coverLetterResult, setCoverLetterResult] = useState(null)
     const [generatingCoverLetter, setGeneratingCoverLetter] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
+    const [filterStatus, setFilterStatus] = useState('All')
     const { llmPayload } = useSettings()
 
     const load = useCallback(() => api.get('/get_jobs').then(r => setJobs(r.data)).finally(() => setLoading(false)), [])
@@ -574,6 +575,10 @@ export default function JobsPage() {
 
 
     const filteredJobs = jobs.filter(j => {
+        // Status Filter
+        if (filterStatus !== 'All' && j.progress !== filterStatus) return false;
+
+        // Search Filter
         const q = searchQuery.toLowerCase().trim();
         if (!q) return true;
         
@@ -599,24 +604,89 @@ export default function JobsPage() {
 
     return (
         <div>
-            <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                <div>
-                    <h2 className="mobile-hidden">My Jobs</h2>
-                    <p>{jobs.length} job{jobs.length !== 1 ? 's' : ''} tracked</p>
+            <div className="page-header sticky-header" style={{ 
+                position: 'sticky', 
+                top: 0, 
+                zIndex: 100, 
+                backgroundColor: 'var(--bg-primary)', 
+                padding: '1rem 0',
+                borderBottom: '1px solid var(--border-light)',
+                marginBottom: '1rem',
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                flexWrap: 'wrap', 
+                gap: '1rem' 
+            }}>
+                <div className="mobile-hidden">
+                    <h2 style={{ margin: 0 }}>My Jobs</h2>
+                    <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>{jobs.length} job{jobs.length !== 1 ? 's' : ''} tracked</p>
                 </div>
+                
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flex: 1, justifyContent: 'flex-end', minWidth: '300px' }}>
-                    <div className="search-bar-container" style={{ position: 'relative', width: '100%', maxWidth: '320px' }}>
-                        <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    {/* Status Filter */}
+                    <div style={{ minWidth: '150px' }}>
+                        <select 
+                            className="form-select" 
+                            value={filterStatus} 
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                            style={{ 
+                                padding: '0 2.5rem 0 1rem',
+                                width: '100%', 
+                                height: '38px', 
+                                fontSize: '0.875rem', 
+                                lineHeight: '40px', // Slightly larger than height to nudge text down
+                                display: 'block'
+                            }}
+                        >
+                            <option value="All">All Statuses</option>
+                            {PROGRESS_STAGES.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                    </div>
+
+                    {/* Search Bar */}
+                    <div className="search-bar-container" style={{ position: 'relative', width: '100%', maxWidth: '340px', height: '38px' }}>
+                        <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translate(0, -50%)', color: 'var(--text-muted)' }} />
                         <input 
                             type="text" 
                             className="form-input" 
-                            placeholder="Search by company, title, skills..." 
+                            placeholder="Search jobs..." 
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            style={{ paddingLeft: '36px', width: '100%', height: '38px', fontSize: '0.875rem' }}
+                            style={{ 
+                                padding: '0 40px', // More space for icons
+                                width: '100%', 
+                                height: '38px', 
+                                fontSize: '0.875rem',
+                                lineHeight: '38px' 
+                            }}
                         />
+                        {searchQuery && (
+                            <button 
+                                onClick={() => setSearchQuery('')}
+                                style={{ 
+                                    position: 'absolute', 
+                                    right: '10px', 
+                                    top: '50%', 
+                                    transform: 'translateY(-50%)', 
+                                    background: 'none', 
+                                    border: 'none', 
+                                    cursor: 'pointer',
+                                    color: 'var(--text-muted)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: '4px',
+                                    height: '24px',
+                                    width: '24px'
+                                }}
+                            >
+                                <X size={14} />
+                            </button>
+                        )}
                     </div>
-                    <button className="btn btn-primary" onClick={() => setShowAdd(true)} style={{ height: '38px' }}>
+
+                    <button className="btn btn-primary" onClick={() => setShowAdd(true)} style={{ height: '38px', whiteSpace: 'nowrap', padding: '0 1rem' }}>
                         <Plus size={16} /> Add Job
                     </button>
                 </div>
@@ -648,7 +718,7 @@ export default function JobsPage() {
 
             {/* Analysis Panel */}
             {analysis && (
-                <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setAnalysis(null)}>
+                <div className="modal-overlay">
                     <Draggable handle=".drag-handle">
                         <div className="modal-box" style={{ maxWidth: 800, margin: 'auto', resize: 'both', overflow: 'hidden', minWidth: '350px', minHeight: '300px', height: '80vh', display: 'flex', flexDirection: 'column', padding: 0 }}>
                             <div className="modal-header drag-handle" style={{ cursor: 'grab' }}>
@@ -658,7 +728,6 @@ export default function JobsPage() {
                             <div className="modal-body" style={{ flex: 1, overflowY: 'auto' }}>
                                 {analysis.isStale && (
                                      <div style={{ padding: '0.75rem 1rem', background: 'var(--warning-soft)', borderLeft: '4px solid var(--warning)', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
-
                                          <div style={{ fontSize: '0.85rem' }}>
                                              <strong>⚠️ New Resume Found:</strong> This analysis was based on an older version of your resume. Would you like to re-analyse?
                                          </div>
@@ -688,7 +757,7 @@ export default function JobsPage() {
 
             {/* Mail Panel */}
             {mailResult && (
-                <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setMailResult(null)}>
+                <div className="modal-overlay">
                     <Draggable handle=".drag-handle">
                         <div className="modal-box" style={{ maxWidth: 800, margin: 'auto', resize: 'both', overflow: 'hidden', minWidth: '350px', minHeight: '300px', height: '80vh', display: 'flex', flexDirection: 'column', padding: 0 }}>
                             <div className="modal-header drag-handle" style={{ cursor: 'grab' }}>
@@ -714,7 +783,7 @@ export default function JobsPage() {
 
             {/* Cover Letter Panel */}
             {coverLetterResult && (
-                <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setCoverLetterResult(null)}>
+                <div className="modal-overlay">
                     <Draggable handle=".drag-handle">
                         <div className="modal-box" style={{ maxWidth: 800, margin: 'auto', resize: 'both', overflow: 'hidden', minWidth: '350px', minHeight: '300px', height: '80vh', display: 'flex', flexDirection: 'column', padding: 0 }}>
                             <div className="modal-header drag-handle" style={{ cursor: 'grab' }}>
@@ -840,6 +909,40 @@ function AnalysisResult({ raw }) {
                     </div>
                 </div>
             )}
+            <style>{`
+                /* Global Select Styling for custom appearance */
+                select {
+                    appearance: none !important;
+                    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'%3E%3C/path%3E%3C/svg%3E") !important;
+                    background-repeat: no-repeat !important;
+                    background-position: right 0.75rem center !important;
+                    background-size: 1rem !important;
+                    cursor: pointer !important;
+                }
+
+                .sticky-header {
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+                }
+
+                @media (max-width: 768px) {
+                    .mobile-hidden {
+                        display: none;
+                    }
+                    .sticky-header {
+                        padding: 0.75rem 0.5rem !important;
+                        flex-direction: column !important;
+                        align-items: stretch !important;
+                        position: relative !important;
+                    }
+                    .sticky-header > div:last-child {
+                        flex-direction: column !important;
+                        gap: 0.5rem !important;
+                    }
+                    .search-bar-container {
+                        max-width: none !important;
+                    }
+                }
+            `}</style>
         </div>
     )
 }

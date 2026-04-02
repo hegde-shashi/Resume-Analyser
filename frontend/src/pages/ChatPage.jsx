@@ -350,12 +350,13 @@ export default function ChatPage() {
                                     }}
                                     style={{
                                         flex: 1, border: 'none', background: 'transparent', outline: 'none',
-                                        padding: '0.6rem 0', minHeight: '24px', maxHeight: '150px', resize: 'none',
+                                        padding: '0.75rem 0 0.45rem 0', // Nudged down
+                                        minHeight: '24px', maxHeight: '150px', resize: 'none',
                                         fontFamily: 'inherit', fontSize: '0.95rem',
                                         color: input.startsWith('/interview') ? 'var(--accent)' : 'var(--text-primary)',
                                         fontStyle: input.startsWith('/interview') ? 'italic' : 'normal',
                                         fontWeight: input.startsWith('/normal') ? '700' : 'normal',
-                                        lineHeight: 1.4, overflowY: 'auto'
+                                        lineHeight: 1.25, overflowY: 'auto'
                                     }}
                                     rows={1}
                                 />
@@ -364,7 +365,11 @@ export default function ChatPage() {
                                 <Send size={18} />
                             </button>
                         </div>
-                        {/* AI Warning Removed */}
+                        <div style={{ textAlign: 'center', marginTop: '0.65rem' }}>
+                            <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0, opacity: 0.8, paddingBottom: '0.2rem'}}>
+                                AI may provide inaccurate information. Consider verifying important facts.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
