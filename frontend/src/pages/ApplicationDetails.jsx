@@ -122,8 +122,8 @@ export default function ApplicationDetails() {
     if (loading) return <div className="loading-center"><div className="spinner spinner-lg" /></div>
 
     return (
-        <div style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '2rem' }}>
-            <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+            <div className="page-header" style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                     <h2 className="mobile-hidden">Application Details</h2>
                     <p>Manage the profile data used by the autofill extension.</p>
@@ -132,6 +132,8 @@ export default function ApplicationDetails() {
                     <RefreshCw size={14} /> Refresh AI Extraction
                 </button>
             </div>
+
+            <div style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '2rem' }}>
 
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 <div className="card" style={{ padding: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
@@ -229,6 +231,7 @@ export default function ApplicationDetails() {
                     </button>
                 </div>
             </form>
+            </div>
         </div>
     )
 }

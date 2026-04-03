@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { FileText, Sparkles, Briefcase, Download, Upload, List, ChevronDown, Check } from 'lucide-react'
 import { renderAsync } from 'docx-preview'
 import { useSettings } from '../context/SettingsContext'
+import ConfirmModal from '../components/ConfirmModal'
 
 export default function GeneratorPage({ setPage }) {
 
@@ -317,11 +318,13 @@ export default function GeneratorPage({ setPage }) {
 
 
     return (
-        <div className="generator-container">
+        <div style={{ width: '100%' }}>
             <div className="page-header">
                 <h2>Resume Generator</h2>
                 <p>Create high-impact, ATS-friendly resumes in seconds</p>
             </div>
+
+            <div className="generator-container">
 
             <div className="generator-tabs">
                 <button
@@ -713,18 +716,21 @@ export default function GeneratorPage({ setPage }) {
                 {showCloseConfirm && (
                     <div className="confirm-modal-overlay">
                         <div className="confirm-modal-content card" onClick={e => e.stopPropagation()}>
-                            <h3>Discard Draft?</h3>
-                            <p>Are you sure you want to close the preview? Your current draft will be cleared.</p>
-                            <div className="confirm-modal-actions">
-                                <button className="btn btn-ghost" onClick={() => setShowCloseConfirm(false)}>Cancel</button>
-                                <button className="btn btn-primary" style={{ background: '#dc2626' }} onClick={confirmClose}>Yes, Discard</button>
-                            </div>
+                            <ConfirmModal 
+                                isOpen={showCloseConfirm}
+                                title="Discard Draft?"
+                                message="Are you sure you want to close the preview? Your current draft will be cleared."
+                                onConfirm={confirmClose}
+                                onCancel={() => setShowCloseConfirm(false)}
+                                isDanger={true}
+                            />
                         </div>
                     </div>
                 )}
             </div>
+        </div>
 
-            <style>{`
+        <style>{`
                 /* Global Select Styling */
                 select {
                     appearance: none !important;

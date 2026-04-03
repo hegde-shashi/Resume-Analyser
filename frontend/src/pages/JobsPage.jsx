@@ -606,13 +606,9 @@ export default function JobsPage() {
         <div>
             <div className="page-header sticky-header" style={{ 
                 position: 'sticky', 
-                top: 0, 
-                zIndex: 100, 
-                backgroundColor: 'var(--bg-primary)', 
-                padding: '1rem 0',
-                borderBottom: '1px solid var(--border-light)',
-                marginBottom: '1rem',
-                display: 'flex', 
+                top: 'var(--topbar-h)', 
+                zIndex: 10, 
+                flexDirection: 'row',
                 justifyContent: 'space-between', 
                 alignItems: 'center', 
                 flexWrap: 'wrap', 
@@ -929,7 +925,8 @@ function AnalysisResult({ raw }) {
                         display: none;
                     }
                     .sticky-header {
-                        padding: 0.75rem 0.5rem !important;
+                        padding: 1rem !important;
+                        margin: -0.75rem -0.75rem 1rem -0.75rem !important;
                         flex-direction: column !important;
                         align-items: stretch !important;
                         position: relative !important;

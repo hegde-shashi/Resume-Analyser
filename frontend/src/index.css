@@ -38,6 +38,7 @@
   --transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   --logo-fill: #7C5C3E;
   --calendar-icon-filter: none;
+  --topbar-h: 60px;
   /* Brown accent for light mode */
 }
 
@@ -296,14 +297,15 @@ select {
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   padding: 0 2rem;
-  height: 60px;
+  height: var(--topbar-h);
   display: flex;
   align-items: center;
   justify-content: space-between;
   position: sticky;
   top: 0;
-  z-index: 50;
-  transition: background var(--transition), border-color var(--transition);
+  z-index: 1000;
+  transition: all var(--transition);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .topbar-title {
@@ -597,20 +599,40 @@ select {
 
 /* ── PAGE HEADER ───────────────────────────────────────────────── */
 .page-header {
-  margin-bottom: 1.75rem;
+  margin: -2rem -2rem 2rem -2rem;
+  padding: 1.5rem 2rem;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  transition: all var(--transition);
 }
 
 .page-header h2 {
-  font-size: 1.6rem;
+  font-size: 1.4rem;
   font-weight: 800;
   color: var(--text-primary);
-  letter-spacing: -0.03em;
+  margin-bottom: 0.15rem;
+  letter-spacing: -0.02em;
 }
 
 .page-header p {
-  font-size: 0.875rem;
   color: var(--text-muted);
-  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    margin: -0.75rem -0.75rem 1rem -0.75rem;
+    padding: 1.25rem 1rem;
+    gap: 0.25rem;
+  }
+
+  .page-header h2 {
+    font-size: 1.2rem;
+  }
 }
 
 /* ── GRID ──────────────────────────────────────────────────────── */

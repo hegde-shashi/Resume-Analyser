@@ -31,22 +31,28 @@ export function SettingsProvider({ children }) {
             const { data } = await api.post('/check_models', body)
             const list = data.models || []
             setModels(list)
-            // pick first model if current selection not in list
-            if (list.length > 0 && !list.includes(model)) {
-                setModel(list.find(m => m.includes('2.5-flash-lite')) || list.find(m => m.includes('2.5-flash')) || list[0])
-            }
         } catch {
             setModels([])
         } finally {
             setLoadingModels(false)
         }
-    }, [model])
+    }, [])
 
-    // fetch models on mount with saved settings
+    // fetch models whenever API mode or key changes
     useEffect(() => { 
         fetchModels(apiMode, apiKey) 
-        // eslint-disable-next-line
-    }, [fetchModels])
+    }, [fetchModels, apiMode, apiKey])
+
+    // Ensure valid model is selected whenever the models list changes
+    useEffect(() => {
+        if (models.length > 0 && !models.includes(model)) {
+            setModel(prev => {
+                if (models.includes(prev)) return prev;
+                return models.find(m => m.includes('1.5-flash')) || 
+                       models[0];
+            })
+        }
+    }, [models, model])
 
     // Build the LLM payload to attach to every API call
     const llmPayload = {
@@ -72,7 +78,7 @@ export function SettingsProvider({ children }) {
             setApiMode('user')
             setShowKeyModal(false)
             if (list.length > 0 && !list.includes(model)) {
-                setModel(list.find(m => m.includes('2.5-flash-lite')) || list.find(m => m.includes('2.5-flash')) || list[0])
+                setModel(list.find(m => m.includes('1.5-flash')) || list[0])
             }
             return { success: true }
         } catch (err) {
