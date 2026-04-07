@@ -2,14 +2,14 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 
 import api from '../api'
 import toast from 'react-hot-toast'
-import { Plus, Trash2, FileText, MapPin, Briefcase, ChevronDown, ChevronUp, RefreshCw, Mail, FileSignature, Search, Edit2, Check, X } from 'lucide-react'
+import { Plus, Trash2, FileText, MapPin, Briefcase, ChevronDown, ChevronUp, RefreshCw, Mail, FileSignature, Search, Edit2, Check, X, ListFilter } from 'lucide-react'
 import { useSettings } from '../context/SettingsContext'
 import ConfirmModal from '../components/ConfirmModal'
 import ReactMarkdown from 'react-markdown'
 import Draggable from 'react-draggable'
 
-const PROGRESS_STAGES = ['Checking', 'Applied', 'HR Interview', 'Technical Interview', 'Final Round', 'Offer', 'Rejected']
-const PROGRESS_COLORS = { Checking: 'badge-danger', Applied: 'badge-accent', 'HR Interview': 'badge-warning', 'Technical Interview': 'badge-warning', 'Final Round': 'badge-accent', Offer: 'badge-success', Rejected: 'badge-danger' }
+const PROGRESS_STAGES = ['Checking', 'Applied', 'Assessment', 'HR Interview', 'Technical Interview', 'Final Round', 'Offer', 'Rejected']
+const PROGRESS_COLORS = { Checking: 'badge-danger', Applied: 'badge-accent', Assessment: 'badge-warning', 'HR Interview': 'badge-warning', 'Technical Interview': 'badge-warning', 'Final Round': 'badge-accent', Offer: 'badge-success', Rejected: 'badge-danger' }
 
 function AddJobModal({ onClose, onAdded }) {
     const [tab, setTab] = useState('link')
@@ -619,9 +619,10 @@ export default function JobsPage() {
                     <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>{jobs.length} job{jobs.length !== 1 ? 's' : ''} tracked</p>
                 </div>
                 
-                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flex: 1, justifyContent: 'flex-end', minWidth: '300px' }}>
+                <div className="search-filter-container">
                     {/* Status Filter */}
-                    <div style={{ minWidth: '150px' }}>
+                    <div className="filter-select-wrapper">
+                        <ListFilter size={18} className="mobile-only" style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', color: 'var(--accent)' }} />
                         <select 
                             className="form-select" 
                             value={filterStatus} 
@@ -641,7 +642,7 @@ export default function JobsPage() {
                     </div>
 
                     {/* Search Bar */}
-                    <div className="search-bar-container" style={{ position: 'relative', width: '100%', maxWidth: '340px', height: '38px' }}>
+                    <div className="search-bar-wrapper">
                         <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translate(0, -50%)', color: 'var(--text-muted)' }} />
                         <input 
                             type="text" 
@@ -683,7 +684,7 @@ export default function JobsPage() {
                     </div>
 
                     <button className="btn btn-primary" onClick={() => setShowAdd(true)} style={{ height: '38px', whiteSpace: 'nowrap', padding: '0 1rem' }}>
-                        <Plus size={16} /> Add Job
+                        <Plus size={16} /> <span className="mobile-hidden">Add Job</span>
                     </button>
                 </div>
             </div>

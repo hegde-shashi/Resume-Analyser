@@ -78,7 +78,7 @@ def chat():
         system_prompt_template = chat_prompt().messages[0].prompt.template
         
         # Add ID information to helps tools
-        id_context = f"\nUser ID: {user_id}\nJob ID: {data['job_id']}\n"
+        id_context = f"\n\n--- CRITICAL: CURRENT IDs FOR TOOLS ---\nUser ID: {user_id}\nJob ID: {data['job_id']}\n---"
         
         full_system_prompt = system_prompt_template.format(
             company=job.company,

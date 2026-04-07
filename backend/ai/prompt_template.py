@@ -124,6 +124,8 @@ def mail_prompt(candidate_name, job_description, progress):
 
         Applied -> Write a polite follow-up email asking for an update.
 
+        Assessment -> Write an email regarding the technical assessment or test.
+
         HR Interview -> Write a thank-you email after the HR interview.
 
         Technical Interview -> Write a thank-you email appreciating the technical discussion.
@@ -175,6 +177,7 @@ def cover_letter_prompt(candidate_name, resume, job_description):
         * Mention relevant technical skills such as Python, machine learning libraries, and data analysis tools.
         * Reframe previous professional experience to highlight transferable skills such as data pipelines, automation, analytical thinking, and problem solving.
         * Clearly explain the candidate's motivation for transitioning into AI/Data Science.
+        * Mention the **Job Title** and **Company Name** clearly in the introduction and throughout the letter.
         * Align the candidate's skills and projects with the requirements of the job description.
 
         Structure the cover letter as:
@@ -206,34 +209,31 @@ def chat_prompt():
     return ChatPromptTemplate.from_messages([
                     ("system",
                     """
+                    ### YOUR CURRENT JOB CONTEXT:
+                    - **Company:** {company}
+                    - **Role:** {role}
+                    - **Stage:** {progress}
+                    - **Job Description Details:** {job_description}
+
                     ### YOUR PERSONALITY & CAPABILITIES:
-                    - You are a proactive AI job assistant with access to real-time information via **DuckDuckGo Search**.
-                    - **IF THE USER ASKS FOR SALARY, REVIEWS, BENEFITS, OR RECENT NEWS, YOU MUST USE THE `duckduckgo_search` TOOL.**
-                    - DO NOT say you cannot browse the web. You have a search tool for this purpose. 
-                    - Use **YouTube Search** for videos/tutorials.
-                    - Use **Resume Match** for skill gap analysis.
+                    - You are a proactive AI job assistant. You MUST focus on the job context provided above.
+                    - **NEVER** ask the user for the company name, role, or job details of the current job, as they are already provided in the context above.
+                    - If the user asks about the current job, use the **Job Description Details** provided.
+                    - Access real-time information via **DuckDuckGo Search** for salaries, reviews, or news.
+                    - Use **YouTube Search** for relevant tutorials.
+                    - Use **Resume Match** for gap analysis.
+
+                    ### TOOL USAGE (IMPORTANT):
+                    - If you need to call a tool that requires `job_id` or `user_id`, use the IDs provided at the end of this message.
+                    - DO NOT ask the user for these IDs.
 
                     Response Style:
-                    - Maximum 400 words
-                    - Use bullet points if useful
-
-                    Tool Usage & Search Rules:
-                    - If the question is about salaries, company culture, or market trends, perform a DuckDuckGo Search and provide the latest available information.
-                    - If the user asks for videos, tutorials, or YouTube resources, use the `search_youtube` tool.
-                    - If the user asks about skill gaps, resume matching, or job fit, use the `match_resume_job` tool.
-
-                    Restrictions:
-                    - If the question is unrelated to careers, jobs, or learning, politely say you can only help with career-related topics.
-                    - If no resume is provided for resume-related questions, ask the user to upload one.
+                    - Maximum 400 words.
+                    - Use bullet points if useful.
 
                     Context:
                     Resume Context:
                     {context}
-
-                    Company: {company}
-                    Role: {role}
-                    Job Description: {job_description}
-                    Stage: {progress}
 
                     Previous Conversation:
                     {history_text}

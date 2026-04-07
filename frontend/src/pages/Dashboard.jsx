@@ -5,6 +5,7 @@ import { Briefcase, BarChart2, TrendingUp, ArrowRight } from 'lucide-react'
 
 const PROGRESS_COLORS = {
     Applied: 'badge-accent',
+    Assessment: 'badge-warning',
     'HR Interview': 'badge-warning',
     'Technical Interview': 'badge-warning',
     'Final Round': 'badge-accent',

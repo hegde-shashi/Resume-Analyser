@@ -72,7 +72,7 @@ def generate_cover_letter():
     prompt = cover_letter_prompt(
         candidate_name,
         resume.text_chunk,
-        job,
+        job_text,
     )
 
     result = llm.invoke(prompt)
