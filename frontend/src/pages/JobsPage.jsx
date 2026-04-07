@@ -613,19 +613,11 @@ export default function JobsPage() {
                 <div className="search-filter-container">
                     {/* Status Filter */}
                     <div className="filter-select-wrapper">
-                        <ListFilter size={18} className="mobile-only" style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', color: 'var(--accent)' }} />
+                        <ListFilter size={18} className="mobile-only" />
                         <select 
                             className="form-select" 
                             value={filterStatus} 
                             onChange={(e) => setFilterStatus(e.target.value)}
-                            style={{ 
-                                padding: '0 2.5rem 0 1rem',
-                                width: '100%', 
-                                height: '38px', 
-                                fontSize: '0.875rem', 
-                                lineHeight: '40px', // Slightly larger than height to nudge text down
-                                display: 'block'
-                            }}
                         >
                             <option value="All">All Statuses</option>
                             {PROGRESS_STAGES.map(s => <option key={s} value={s}>{s}</option>)}
