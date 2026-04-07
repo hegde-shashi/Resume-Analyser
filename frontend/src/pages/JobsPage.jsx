@@ -686,7 +686,7 @@ export default function JobsPage() {
                     <button className="btn btn-ghost" onClick={() => setSearchQuery('')} style={{ marginTop: '0.5rem' }}>Clear Search</button>
                 </div>
             ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem'}}>
                     {filteredJobs.map(j => (
                         <JobCard key={j.id} job={j}
                             onDelete={remove} onProgressChange={changeProgress} onAnalyse={analyse}
