@@ -604,16 +604,7 @@ export default function JobsPage() {
 
     return (
         <div>
-            <div className="page-header sticky-header" style={{ 
-                position: 'sticky', 
-                top: 'var(--topbar-h)', 
-                zIndex: 10, 
-                flexDirection: 'row',
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                flexWrap: 'wrap', 
-                gap: '1rem' 
-            }}>
+            <div className="page-header sticky-header">
                 <div className="mobile-hidden">
                     <h2 style={{ margin: 0 }}>My Jobs</h2>
                     <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>{jobs.length} job{jobs.length !== 1 ? 's' : ''} tracked</p>
