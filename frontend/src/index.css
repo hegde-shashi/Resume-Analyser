@@ -164,7 +164,7 @@ select {
 
 @media (max-width: 768px) {
   .page-body {
-    padding: 0 1rem 1rem 1rem; /* Removed top padding */
+    padding: 0 !important; /* Completely removed all padding as requested */
   }
 }
 
@@ -720,14 +720,14 @@ select {
 
 @media (max-width: 768px) {
   .page-header {
-    margin: 0 -1rem 1rem -1rem; /* Removed negative top margin */
+    margin: 0; /* Match parent's 0 padding */
     padding: 0.75rem 1rem;
     gap: 0;
   }
   
   .page-header.sticky-header {
-    top: 0; /* Forced to 0 as requested */
-    z-index: 1001; /* Above topbar (1000) if needed, or matched */
+    top: 0;
+    z-index: 1001;
   }
 
   .page-header h2 {
