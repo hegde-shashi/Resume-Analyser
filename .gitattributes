@@ -1,0 +1,3 @@
+# Ignore frontend and extension files for language statistics
+frontend/** linguist-detectable=false
+Extension/** linguist-detectable=false
