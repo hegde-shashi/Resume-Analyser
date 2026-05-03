@@ -69,7 +69,7 @@ export default function ApplicationDetails() {
         } finally {
             setLoading(false)
         }
-    }, [])
+    }, [llmPayload])
 
     useEffect(() => { loadDetails() }, [loadDetails])
 
