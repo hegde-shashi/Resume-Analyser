@@ -48,6 +48,7 @@ beautifulsoup4==4.12.3
 cloudscraper==1.2.71
 trafilatura==2.0.0
 ddgs>=9.0.0
+youtube-search==2.1.2
 
 # ── Environment & Config ───────────────────────────────────────────
 python-dotenv==0.21.0
