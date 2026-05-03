@@ -1,4 +1,4 @@
-from ddgs import DDGS
+from duckduckgo_search import DDGS
 import logging
 from backend.tools.youtube_tools import youtube_search
 
