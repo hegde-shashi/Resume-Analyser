@@ -47,7 +47,7 @@ python-docx==1.2.0
 beautifulsoup4==4.12.3
 cloudscraper==1.2.71
 trafilatura==2.0.0
-duckduckgo-search==8.1.1
+ddgs==8.1.1
 
 # ── Environment & Config ───────────────────────────────────────────
 python-dotenv==0.21.0

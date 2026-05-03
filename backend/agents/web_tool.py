@@ -1,4 +1,4 @@
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 import logging
 from backend.tools.youtube_tools import youtube_search
 
@@ -18,11 +18,12 @@ def search_web(query):
             results_text += youtube_search(query) + "\n\n"
             
         # 2. Get regular web results
-        web_results = list(DDGS().text(query, max_results=3))
-        if web_results:
-            results_text += "Web Search Results:\n"
-            for res in web_results:
-                results_text += f"- {res['title']}: {res['href']}\n"
+        with DDGS(timeout=10) as ddgs:
+            web_results = list(ddgs.text(query, max_results=3))
+            if web_results:
+                results_text += "Web Search Results:\n"
+                for res in web_results:
+                    results_text += f"- {res['title']}: {res['href']}\n"
         
         return results_text or "No results found."
         
