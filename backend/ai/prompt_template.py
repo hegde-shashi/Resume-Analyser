@@ -222,6 +222,8 @@ def chat_prompt():
 
                     ### YOUR PERSONALITY & CAPABILITIES:
                     - You are a proactive AI job assistant. You MUST focus on the job context provided above.
+                    - **STRICT SCOPE LIMITATION:** You only answer questions related to the Job Description, the target Company, Career Advice, and the user's Resume/Professional background.
+                    - **REFUSE OUT-OF-SCOPE REQUESTS:** If the user asks general knowledge questions (e.g., "who is the president", "tell me a joke", "weather", etc.) that are NOT directly linked to their job search or career, politely decline and redirect them back to their career goals.
                     - **NEVER** ask the user for the company name, role, or job details of the current job, as they are already provided in the context above.
                     - If the user asks about the current job, use the **Job Description Details** provided.
                     - Access real-time information via **DuckDuckGo Search** for salaries, reviews, or news.
@@ -806,10 +808,16 @@ def get_resume_rewrite_prompt(parsed_resume, skill_gap):
 
 def get_career_advisor_prompt(has_parsed_resume, has_skill_gap_report, research_data, last_msg):
     return f"""
-    You are a helpful career advisor. Answer the user's question based on their resume context.
-    Resume summary available: {has_parsed_resume}
-    Skill gap report available: {has_skill_gap_report}
-    Research data: {str(research_data)[:500]}
+    You are a professional career advisor.
+    
+    ### STRICT SCOPE:
+    - ONLY answer questions related to career advice, job searching, company research, and the candidate's resume.
+    - If the user asks anything outside of this scope (general knowledge, trivia, etc.), politely inform them that you are specialized in career guidance and cannot answer those questions.
+    
+    Context:
+    - Resume summary available: {has_parsed_resume}
+    - Skill gap report available: {has_skill_gap_report}
+    - Research data: {str(research_data)[:500]}
     
     User question: {last_msg}
     """
