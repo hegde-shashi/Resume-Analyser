@@ -178,7 +178,7 @@ export default function ChatPage() {
         <div className="chat-page-wrapper" style={{ display: 'flex', flexDirection: 'row', height: '100%', minHeight: 0, gap: '1rem' }}>
 
             {/* Left sidebar: Job Sessions (Desktop only) */}
-            <div className="chat-sidebar desktop-only" style={{ width: 260, borderRight: '1px solid var(--border-light)', paddingRight: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', overflowY: 'auto' }}>
+            <div className="chat-sidebar desktop-only" style={{ width: 260, borderRight: '1px solid var(--border-light)', paddingRight: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', overflowY: 'auto', margin: '1rem' }}>
                 <h3 style={{ fontSize: '0.85rem', marginBottom: '0.5rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>Chat Sessions</h3>
                 {jobs.map(j => (
                     <div

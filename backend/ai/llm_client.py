@@ -22,10 +22,8 @@ def handle_llm_error(e):
 
 def get_llm(data, streaming=False, temperature=0, enable_tools=False):
     try:
-        model = data.get('model', 'gemini-2.5-flash-lite')
-        if model == 'gemini-1.5-flash':
-            model = 'gemini-2.5-flash-lite'
-        mode = data.get('mode', 'default')
+        model = data.get('model') or data.get('selected_model') or 'gemini-2.5-flash-lite'
+        mode = data.get('mode') or 'default'
     
         if mode == 'user':
             api_key = data.get('api_key')

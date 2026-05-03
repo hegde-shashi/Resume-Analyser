@@ -334,7 +334,7 @@ function JobCard({ job, onDelete, onProgressChange, onAnalyse, onMail, onCoverLe
                         )}
                     </div>
                     <div className="job-card-company" style={{
-                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem'
+                        overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem'
                     }}>
                         {job.error_message ? (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', maxWidth: '100%', flexWrap: 'wrap' }}>
@@ -686,7 +686,7 @@ export default function JobsPage() {
                     <button className="btn btn-ghost" onClick={() => setSearchQuery('')} style={{ marginTop: '0.5rem' }}>Clear Search</button>
                 </div>
             ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem'}}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '2rem'}}>
                     {filteredJobs.map(j => (
                         <JobCard key={j.id} job={j}
                             onDelete={remove} onProgressChange={changeProgress} onAnalyse={analyse}

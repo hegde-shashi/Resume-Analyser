@@ -53,10 +53,33 @@ def parse_job():
         return jsonify({"scrape_success": False, "message": "Could not scrape job page. Please paste job description."})
 
     try:
-        llm = get_llm(data)
-        chain = job_description_prompt() | llm
-        result = chain.invoke({"job_text": clean_html})
-        parsed_data = parse_llm_response(result.content)
+        from backend.agents.graph import create_maarga_graph
+        from langchain_core.messages import HumanMessage
+        
+        agent_app = create_maarga_graph()
+        
+        # Prepare LLM config from request data
+        llm_config = {
+            "model": data.get("model") or data.get("selected_model"),
+            "mode": data.get("mode") or ("user" if data.get("api_key") else "default"),
+            "api_key": data.get("api_key")
+        }
+
+        initial_state = {
+            "messages": [HumanMessage(content="Parse this job description")],
+            "resume_text": None,
+            "parsed_resume": None,
+            "job_description": clean_html,
+            "parsed_jd": None,
+            "skill_gap_report": None,
+            "research_data": None,
+            "generated_resume": None,
+            "career_advice": None,
+            "llm_config": llm_config,
+        }
+        
+        result = agent_app.invoke(initial_state)
+        parsed_data = result.get("parsed_jd") or {}
         
         # Inject the link if it's missing from LLM response
         if 'job_link' not in parsed_data or not parsed_data['job_link']:
@@ -82,10 +105,33 @@ def parse_jd():
     link = data.get('job_link', '')
 
     try:
-        llm = get_llm(data)
-        chain = job_description_prompt() | llm
-        result = chain.invoke({"job_text": jd})
-        parsed_data = parse_llm_response(result.content)
+        from backend.agents.graph import create_maarga_graph
+        from langchain_core.messages import HumanMessage
+        
+        agent_app = create_maarga_graph()
+        
+        # Prepare LLM config from request data
+        llm_config = {
+            "model": data.get("model") or data.get("selected_model"),
+            "mode": data.get("mode") or ("user" if data.get("api_key") else "default"),
+            "api_key": data.get("api_key")
+        }
+
+        initial_state = {
+            "messages": [HumanMessage(content="Parse this job description")],
+            "resume_text": None,
+            "parsed_resume": None,
+            "job_description": jd,
+            "parsed_jd": None,
+            "skill_gap_report": None,
+            "research_data": None,
+            "generated_resume": None,
+            "career_advice": None,
+            "llm_config": llm_config,
+        }
+        
+        result = agent_app.invoke(initial_state)
+        parsed_data = result.get("parsed_jd") or {}
         
         # Inject the link if it's missing from LLM response
         if 'job_link' not in parsed_data or not parsed_data['job_link']:

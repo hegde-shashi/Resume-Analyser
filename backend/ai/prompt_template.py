@@ -1,5 +1,6 @@
 from backend.utils.utils import clean
 from langchain_core.prompts import ChatPromptTemplate
+import json
 
 def resume_check(text):
     prompt = ChatPromptTemplate.from_template(
@@ -154,47 +155,51 @@ def mail_prompt(candidate_name, job_description, progress):
 def cover_letter_prompt(candidate_name, resume, job_description):
     prompt = ChatPromptTemplate.from_template(
         """
-        You are an expert career assistant specializing in writing strong cover letters for candidates transitioning into a new field.
+            You are an expert career assistant specializing in writing strong, tailored cover letters for candidates transitioning into a new field.
 
-        Write a professional cover letter tailored to the job description.
+            Your task is to write a professional, role-specific cover letter aligned with the provided job description, while clearly positioning the candidate as a strong fit despite a career transition.
 
-        Candidate Information:
-        Name: {candidate_name}
+            Candidate Information:
+            Name: {candidate_name}
 
-        Background:
-        The candidate is transitioning into the field of Data Science / Machine Learning / AI.
+            Candidate Resume Summary:
+            {resume}
 
-        Candidate Resume Summary:
-        {resume}
+            Job Information:
+            {job_description}
 
-        Job Information:
-        {job_description}
+            Instructions:
 
-        Instructions:
+            - Clearly mention the **Job Title** and **Company Name** in the introduction and reinforce them naturally in the body.
+            - Emphasize the candidate's most relevant projects, hands-on work, or practical experience as primary evidence of readiness for the role.
+            - Highlight the candidate's education, certifications, or formal training as strong academic or foundational preparation.
+            - Showcase relevant technical, functional, and analytical skills explicitly mentioned or implied in the job description.
+            - Reframe previous professional experience to highlight **transferable skills** such as:
+            - Problem-solving
+            - Analytical thinking
+            - Automation and tooling
+            - Process optimization
+            - Cross-functional collaboration
+            - Data-driven decision-making
+            - Clearly explain the candidate's **motivation for transitioning into this new field**, linking it to skills gained, interests developed, and career goals.
+            - Align the candidate's skills, experience, and projects directly with the requirements and expectations listed in the job description.
+            - Avoid generic claims; back statements with concrete examples from the resume.
+            - Do NOT repeat the resume word-for-word—interpret and contextualize it.
 
-        * Emphasize the candidate's machine learning and data science projects as primary evidence of capability.
-        * Highlight the candidate's M.Tech in Data Science & Artificial Intelligence as strong academic preparation.
-        * Mention relevant technical skills such as Python, machine learning libraries, and data analysis tools.
-        * Reframe previous professional experience to highlight transferable skills such as data pipelines, automation, analytical thinking, and problem solving.
-        * Clearly explain the candidate's motivation for transitioning into AI/Data Science.
-        * Mention the **Job Title** and **Company Name** clearly in the introduction and throughout the letter.
-        * Align the candidate's skills and projects with the requirements of the job description.
+            Structure the cover letter as:
 
-        Structure the cover letter as:
+            1. **Introduction**: Express interest in the specific role and company, and briefly state the career transition.
+            2. **Skills & Projects Paragraph**: Highlight relevant projects, tools, and capabilities aligned with the role.
+            3. **Education & Training Paragraph**: Emphasize academic background, certifications, or structured learning relevant to the position.
+            4. **Transferable Experience Paragraph**: Reframe prior work experience to show how it directly supports success in the new role.
+            5. **Closing Paragraph**: Express enthusiasm, cultural fit, and readiness to contribute value from day one.
 
-        1. Introduction expressing interest in the role.
-        2. Paragraph highlighting machine learning projects and technical skills.
-        3. Paragraph highlighting M.Tech studies and relevant coursework.
-        4. Paragraph reframing prior work experience to show transferable technical skills.
-        5. Closing paragraph expressing enthusiasm and readiness to contribute.
-
-        Rules:
-
-        * Keep the tone professional and confident.
-        * Do not repeat the resume word-for-word.
-        * Keep the cover letter between 200-300 words.
-        * Avoid generic statements.
-        * Return only the cover letter text.
+            Rules:
+            - Maintain a professional, confident, and focused tone.
+            - Keep the cover letter between **200-300 words**.
+            - Avoid clichés and vague statements.
+            - Ensure the letter sounds natural and human, not templated.
+            - Return **ONLY the cover letter text** (no explanations, no headings).
         """
     )
     return prompt.format(
@@ -245,18 +250,30 @@ def chat_prompt():
 
 def get_resume_structured_prompt(resume_text):
     return f"""
-                You are an expert resume parser.
 
-                Your task is to convert the following resume into a structured JSON format.
+                You are a professional resume writer and ATS optimization expert.
+
+                Using ONLY the provided user data, generate a clean, ATS-friendly resume content structure that improves clarity, grammar, and professional impact while preserving the candidate's original experience.
+
+                Global Constraints:
+                - Do NOT add, infer, or fabricate any experience, metrics, tools, roles, or responsibilities.
+                - Optimize phrasing for ATS parsing and recruiter readability (semantic matching, not keyword stuffing).
 
                 Rules:
-                - Do not invent any information.
-                - Only use data present in the resume.
-                - Convert experience and project descriptions into bullet points.
-                - Bullet points must be returned as arrays of strings.
-                - Don't change Education details and Certificates, check only spelling and grammar.
-                - Keep the information concise and ATS-friendly.
-                - If a field is missing, return an empty value.
+                - Improve grammar, sentence structure, and professional tone throughout.
+                - Convert experience, internships, and project descriptions into concise, results-oriented bullet points.
+                - Every bullet point MUST begin with a strong past-tense action verb (e.g., Engineered, Optimized, Analyzed, Automated, Delivered).
+                - Rephrase generic responsibilities into clear professional accomplishments.
+                - Quantify achievements ONLY if the data is already present in the user input (do not create numbers).
+                - Use industry-standard terminology relevant to the role indicated by the user data.
+                - Prioritize clarity, impact, and relevance over length.
+                - Keep formatting simple and ATS-safe (plain text, consistent bullets).
+                - Do NOT change Education details or Certificates (only correct spelling or grammar if required).
+
+                Output Rules:
+                - Return ONLY valid JSON.
+                - Do NOT add explanations, headers, comments, or extra text.
+                - Ensure the JSON structure is EXACTLY as specified below
 
                 Return ONLY valid JSON in the following structure:
 
@@ -384,22 +401,354 @@ def get_form_ai_prompt(data):
 
 def get_job_specific_prompt(resume_text, job_description):
     return f"""
-                You are an expert resume optimizer.
+                
+                You are an expert resume optimizer, ATS specialist, and hiring-manager simulator.
 
-                Rewrite the resume so it better matches the provided job description while keeping the original experience.
+                Your task is to rewrite the provided resume so that it is HIGHLY ATS-FRIENDLY and strongly aligned with the given job description, while preserving the candidate’s original experience, roles, and background.
 
-                Rules:
-                - Do not invent new roles or experiences, but you are encouraged to rephrase existing ones for maximum relevance.
-                - Only rephrase, prioritize, and optimize content that aligns with the target role.
-                - Create a punchy, professional summary based on the job description. (Max 2-3 lines).
-                - Use high-impact keywords from the job description naturally.
-                - Convert experience and project descriptions into professional bullet points using strong action verbs.
-                - Focus on "Impact" and "Results" rather than just "Responsibilities".
-                - Don't change Education details and Certificates, check only spelling and grammar.
-                - Maintain ATS-friendly formatting.
+                Global Constraints:
+                - The TOTAL output (all JSON fields combined) must NOT exceed **1500 words**.
+                - The resume must be optimized for **ATS semantic matching**, not simple keyword copy-paste.
 
-                Return ONLY JSON in this structure:
+                Critical ATS Optimization Rules:
+                - Do NOT copy sentences verbatim from the job description.
+                - Translate job description requirements into equivalent, relevant resume language using:
+                - Industry-standard terminology
+                - Role-aligned action verbs
+                - Skill adjacency and semantic equivalents
+                - Ensure keywords from the job description are:
+                - Naturally embedded
+                - Distributed across Summary, Skills, Experience, and Projects
+                - Contextualized through achievements and outcomes
+                - Avoid keyword stuffing or unnatural repetition.
 
+                Content Rules:
+                - Do NOT invent new roles, companies, projects, achievements, metrics, or tools.
+                - Rephrase, reorder, and optimize ONLY the existing resume content.
+                - Prioritize the most relevant experience and projects for the target role.
+                - Create a concise, punchy, professional summary tailored specifically to the job description.
+                - Convert experience and project descriptions into clear, results-driven bullet points.
+                - Focus on impact, outcomes, contributions, and problem-solving—not responsibilities.
+                - Use strong action verbs and role-appropriate language.
+                - Quantify results ONLY if already present in the original resume (do not fabricate metrics).
+                - Do NOT modify Education details or Certificates (only fix spelling or grammar if required).
+
+                Formatting Rules (ATS-Safe):
+                - Use simple text formatting only.
+                - No tables, icons, emojis, symbols, charts, or graphics.
+                - Use consistent bullet formatting and clear hierarchy.
+                - Avoid abbreviations unless they are industry standard.
+
+                Output Rules:
+                - Return **ONLY valid JSON**
+                - Do NOT add explanations, commentary, headings, or extra text.
+                - Ensure the JSON structure is EXACTLY as specified below.
+
+                JSON Output Structure:
+
+                {{
+                "name": "",
+                "mobile_number": "",
+                "mail_id": "",
+                "linkedin_link": "",
+                "github_link": "",
+                "portfolio_link": "",
+                "summary": "",
+                "skills": [
+                    {{
+                    "main_skill": "",
+                    "sub_skills": ""
+                    }}
+                ],
+                "companies": [
+                    {{
+                    "position": "",
+                    "name": "",
+                    "from": "",
+                    "to": "",
+                    "experience": []
+                    }}
+                ],
+                "projects": [
+                    {{
+                    "title": "",
+                    "tools_used": "",
+                    "project_link": "",
+                    "project_details": []
+                    }}  
+                ],
+                "educations": [
+                    {{
+                    "field": "",
+                    "subject": "",
+                    "college": "",
+                    "college_from": "",
+                    "college_to": ""
+                    }}
+                ],
+                "certificates": [
+                    {{
+                    "name": "",
+                    "issuer": ""
+                    }}
+                ]
+                }}
+
+
+                Resume:
+                {resume_text}
+
+                Job Description:
+                {job_description}
+            """
+
+def get_supervisor_prompt(has_resume: bool, has_jd: bool, has_skill_gap: bool, has_research: bool, has_generated_resume: bool, last_message: str):
+    return f"""You are the Supervisor of a multi-agent career guidance system.
+            Based on the user's message and current state, decide which specialist agent 
+            should handle this request NEXT.
+
+            Available agents:
+            - "resume_analyzer" → Parse resume and/or JD, extract skills, compute match score
+            - "skill_gap" → Identify missing skills, suggest learning paths
+            - "resume_generator" → Create/optimize ATS-friendly resume tailored to JD
+            - "research" → Search web for company info, salary data, learning resources
+            - "career_advisor" → Give personalized career advice, answer questions conversationally
+            - "FINISH" → Task is complete, respond to user
+
+            Current State:
+            - Resume parsed: {has_resume}
+            - JD parsed: {has_jd}
+            - Skill gaps identified: {has_skill_gap}
+            - Research done: {has_research}
+            - Optimized resume generated: {has_generated_resume}
+
+            User's message: "{last_message}"
+
+            ROUTING RULES:
+            1. If user uploads resume/JD and they're not parsed yet → "resume_analyzer"
+            2. If resume+JD are parsed but no skill gap analysis → "skill_gap"
+            3. If user asks to create/optimize resume and it's NOT generated yet → "resume_generator"
+            4. If user asks about company/salary/resources/anything that needs to be researched → "research"
+            5. If analysis is done and user needs advice → "career_advisor"
+            6. If the requested task is already done → "FINISH"
+
+            Return ONLY the agent name, nothing else.
+        """
+
+def get_skill_gap_prompt(parsed_resume, parsed_jd):
+    return f"""
+    You are an automated Applicant Tracking System (ATS) evaluation engine.
+    Your task is to score a resume against a job description using strict,
+    evidence-based, rule-driven logic. You are NOT a human recruiter.
+
+    ────────────────────────────────
+    HARD RULES (NON-NEGOTIABLE)
+    ────────────────────────────────
+    - Score strictly based on explicit evidence present in the resume.
+    - Do NOT infer, assume, extrapolate, or guess skills or experience.
+    - Missing information = missing skill or experience.
+    - Partial mentions earn proportional credit ONLY if clearly stated.
+    - Do NOT compensate for missing requirements with strength in other areas.
+    - Academic, personal, or open-source projects do NOT count as work experience.
+    - Internships count as 0.5x experience unless the JD explicitly overrides this.
+    - Unclear or missing dates = experience duration does NOT count.
+    - No rounding up of scores.
+    - Final score MUST be the exact sum of all category scores.
+    - Avoid safe, median, or generous scoring. Every point must be justified.
+
+    ────────────────────────────────
+    SCORING CRITERIA (TOTAL = 100)
+    ────────────────────────────────
+
+    1. EXPERIENCE MATCH (0-30)
+    Evaluate total years of RELEVANT experience and seniority level only.
+
+    Scoring Rules:
+    - If resume years < JD minimum → MAX 15 points.
+    - If resume years ≥ JD minimum → up to 25 points.
+    - If resume years ≥ JD minimum + 2 years → up to 30 points.
+    - Seniority mismatch (e.g., junior vs senior role) → -5 points flat.
+    - Internships counted at 0.5x duration.
+    - Experience unrelated to JD domain earns no credit.
+
+    2. SKILL MATCH (0-50)
+    Skills must be explicitly listed OR clearly demonstrated in context.
+
+    Skill Classification:
+    - Mandatory skills → 70% of skill score (35 points total)
+    - Important skills → 20% of skill score (10 points total)
+    - Nice-to-Have skills → 10% of skill score (5 points total)
+
+    Deduction Rules:
+    - Missing ONE mandatory skill → -8 points.
+    - Missing ONE important skill → -3 points.
+    - Missing nice-to-have skill → no penalty.
+    - Tools, frameworks, and languages count ONLY if explicitly named.
+    - Similar technologies do NOT substitute unless stated in the JD.
+
+    3. WORK / PROJECT RELEVANCE (0-25)
+    Evaluate relevance, technical depth, scale, and applicability of BOTH
+    professional work AND projects.
+
+    Classification Rules:
+    - Professional Work: Paid, industry, production-level experience.
+    - Projects:
+        a) Academic (university/coursework)
+        b) Personal (self-initiated)
+        c) Open-source / Freelance / Client (non-academic)
+
+    Scoring Formula:
+    TOTAL = Work Contribution + Project Contribution (cap at 25)
+
+    A. Professional Work Contribution (0-18)
+    - Production systems, real users, or business impact required.
+    - Explicit ownership, scale, or complexity needed for higher scores.
+    - Internal tools or low-impact work score proportionally lower.
+
+    B. Project Contribution (0-12)
+    - Academic projects → MAX 6 points total.
+    - Personal projects → MAX 8 points total.
+    - Open-source / freelance / real client projects → MAX 12 points.
+    - Tutorials, toy apps, or copy-along demos → minimal credit (≤2).
+
+    Absolute Limits:
+    - Projects WITHOUT work experience → MAX 12/25.
+    - Work WITHOUT projects → MAX 18/25.
+    - To exceed 18 points, BOTH relevant work AND strong projects must exist.
+
+    Evidence Requirements:
+    - Must explicitly mention technologies, problem scope, and candidate's role.
+    - Vague descriptions receive proportional or zero credit.
+
+    4. RESUME QUALITY (0-5)
+    ATS usability and clarity ONLY.
+
+    Scoring Rules:
+    - ATS-parsable format (clear sections, no tables/images) → +2
+    - Clear job titles, dates, and progression → +1
+    - Strong keyword alignment with JD → +2
+
+    ────────────────────────────────
+    OUTPUT FORMAT (STRICT JSON ONLY)
+    ────────────────────────────────
+    Return JSON EXACTLY with these keys and NOTHING ELSE:
+
+    {{
+    "score": <integer 0-100>,
+    "matched_skills": [<list of explicitly matched skill strings>],
+    "missing_skills": [<list of missing mandatory/important skill strings>],
+    "suggestions": [<actionable, resume-specific improvement points>],
+    "evaluation_summary": "#### Evaluation Breakdown
+    - **Experience Match (X/30):** <explicit justification>
+    - **Skill Match (X/50):** <explicit justification>
+    - **Work / Project Relevance (X/25):** <explicit justification>
+    - **Resume Quality (X/5):** <explicit justification>"
+    }}
+
+    ────────────────────────────────
+    INPUT DATA
+    ────────────────────────────────
+    Resume:
+    {json.dumps(parsed_resume)[:2000] if parsed_resume else ''}
+
+    Job Description:
+    {json.dumps(parsed_jd)[:2000] if parsed_jd else ''}
+
+    ────────────────────────────────
+    FINAL DIRECTIVE
+    ────────────────────────────────
+    Behave strictly as a deterministic ATS parser.
+    No leniency. No intuition. No hesitation.
+    """
+
+def get_resume_rewrite_prompt(parsed_resume, skill_gap):
+    return f"""
+                
+            You are a professional resume writer and ATS optimization expert with experience across multiple industries and job functions.
+
+            Your task is to generate a highly ATS-friendly resume structure using ONLY the provided user data, while intelligently aligning it with the job description.
+
+            GLOBAL CONSTRAINTS:
+            - Do NOT invent, assume, exaggerate, or fabricate experience, responsibilities, tools, metrics, or achievements.
+            - Preserve the candidate's actual seniority, scope of work, and credibility.
+            - Optimize wording for ATS and recruiters without misleading or harming interview outcomes.
+
+            CRITICAL JD ALIGNMENT RULE (SAFE KEYWORD ENRICHMENT):
+            - You MAY add keywords, skills, or terminology from the job description **ONLY IF**:
+            - They are logically implied by the candidate's existing experience, projects, or education, AND
+            - Adding them does NOT misrepresent what the candidate can reasonably explain in an interview.
+            - Examples of acceptable additions:
+            - Industry-standard synonyms (e.g., “stakeholder communication” for “client coordination”)
+            - Common role expectations already reflected implicitly in the resume
+            - Adjacent tools, methods, or practices the candidate demonstrably used (without naming them explicitly before)
+            - Examples of NOT allowed additions:
+            - New tools, certifications, or technologies not present or clearly implied
+            - Seniority-inflating leadership claims
+            - Metrics or outcomes not present in the original data
+            - Enrichment must be subtle, contextual, and defensible—not keyword stuffing.
+
+            CONTENT RULES:
+            - Improve grammar, clarity, and professional tone.
+            - Rephrase generic responsibilities into clear, results-oriented accomplishments.
+            - Convert all experience and project descriptions into professional bullet points.
+            - EVERY bullet point must:
+            - Begin with a strong action verb (e.g., Led, Built, Optimized, Analyzed, Delivered, Implemented)
+            - Describe WHAT was done and WHY it mattered
+            - Be concise, specific, and factual
+            - Quantify achievements ONLY if numbers already exist in the user data.
+            - Avoid buzzwords, vague claims, and filler phrases.
+            - Use neutral, industry-agnostic language suitable for all job types.
+
+            SKILLS SECTION RULES:
+            - Organize skills logically by domain or function.
+            - Use ATS-recognized, standardized skill naming.
+            - Remove redundancy while preserving depth.
+            - Add JD-aligned keywords ONLY if they meet the safe enrichment rule above.
+
+            SUMMARY RULES:
+            - 3-5 lines maximum.
+            - Clearly state professional identity, experience level, and core strengths.
+            - Incorporate JD-aligned language only where it naturally fits existing experience.
+            - Avoid role-specific hype or unsupported claims.
+
+            EDUCATION & CERTIFICATIONS:
+            - Do NOT change factual details.
+            - Only correct spelling, grammar, or formatting if required.
+
+            FORMATTING RULES (MANDATORY):
+            - ATS-safe plain text formatting.
+            - No tables, icons, emojis, symbols, or decorative elements.
+            - Consistent bullet style and spacing.
+            - Clear hierarchy optimized for ATS parsing.
+
+
+            SECTION BULLET DENSITY RULES (MANDATORY):
+
+            - EACH full-time role MUST contain **4-8 bullet points**.
+            - EACH major project MUST contain **3-6 bullet points**.
+            - Bullets must be DISTINCT and cover different aspects such as:
+            - Architecture or system design
+            - Tools and technologies used
+            - Data flow or workflow
+            - Optimization or automation
+            - Accuracy, performance, or efficiency
+            - Business or user impact
+
+            ANTI-SUMMARIZATION RULE:
+            - Do NOT consolidate multiple responsibilities into one bullet.
+            - If experience includes multiple tools, systems, or outcomes, they MUST be split into separate bullets.
+            - Short, precise bullets are preferred over fewer comprehensive bullets.
+
+            FAILURE CONDITION:
+            - If a role or project contains fewer bullet points than specified, the output is considered incorrect.
+
+            OUTPUT RULES:
+            - You can write upto 2000 words but not exceed it and less than 1500 words.
+            - Return ONLY valid JSON.
+            - Do NOT include explanations, comments, or extra text.
+            - JSON structure must match EXACTLY as below.
+
+                JSON Output Structure:
                 {{
                 "name": "",
                 "mobile_number": "",
@@ -449,8 +798,18 @@ def get_job_specific_prompt(resume_text, job_description):
                 }}
 
                 Resume:
-                {resume_text}
+                {json.dumps(parsed_resume)[:5000] if parsed_resume else ''}
 
-                Job Description:
-                {job_description}
-            """
+                Skill Gap context:
+                {json.dumps(skill_gap)[:3000] if skill_gap else ''}
+    """
+
+def get_career_advisor_prompt(has_parsed_resume, has_skill_gap_report, research_data, last_msg):
+    return f"""
+    You are a helpful career advisor. Answer the user's question based on their resume context.
+    Resume summary available: {has_parsed_resume}
+    Skill gap report available: {has_skill_gap_report}
+    Research data: {str(research_data)[:500]}
+    
+    User question: {last_msg}
+    """

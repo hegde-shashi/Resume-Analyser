@@ -71,7 +71,7 @@ export default function Dashboard({ setPage }) {
             </div>
 
             {/* Stats — each card navigates to its page */}
-            <div className="grid-3" style={{ marginBottom: '2rem' }}>
+            <div className="grid-3" style={{ margin: '2rem' }}>
                 {stats.map(s => (
                     <div
                         className="stat-card"

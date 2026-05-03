@@ -11,11 +11,39 @@ def get_full_text(file_b64: str, filename: str = "resume.pdf"):
     if ext == ".pdf":
         import pypdf
         reader = pypdf.PdfReader(io.BytesIO(file_bytes))
-        text = "\n".join(page.extract_text() or "" for page in reader.pages)
+        
+        pages_text = []
+        for page in reader.pages:
+            page_text = page.extract_text() or ""
+            links = []
+            if "/Annots" in page:
+                for annot_ref in page["/Annots"]:
+                    try:
+                        annot = annot_ref.get_object()
+                        if annot.get("/Subtype") == "/Link":
+                            a = annot.get("/A")
+                            if a:
+                                a_obj = a.get_object()
+                                if "/URI" in a_obj:
+                                    links.append(a_obj["/URI"])
+                    except Exception:
+                        pass
+            if links:
+                page_text += "\nLinks: " + ", ".join(links)
+            pages_text.append(page_text)
+            
+        text = "\n".join(pages_text)
+        
     elif ext == ".docx":
         import docx
         doc = docx.Document(io.BytesIO(file_bytes))
         text = "\n".join(para.text for para in doc.paragraphs)
+        links = []
+        for rel in doc.part.rels.values():
+            if "hyperlink" in rel.reltype:
+                links.append(rel.target_ref)
+        if links:
+            text += "\nLinks: " + ", ".join(links)
     else:
         text = file_bytes.decode("utf-8", errors="ignore")
     
@@ -35,14 +63,39 @@ def get_resume_text(file_b64: str, filename: str = "resume.pdf"):
     if ext == ".pdf":
         import pypdf
         reader = pypdf.PdfReader(io.BytesIO(file_bytes))
-        text = "\n".join(
-            page.extract_text() or "" for page in reader.pages
-        )
+        
+        pages_text = []
+        for page in reader.pages:
+            page_text = page.extract_text() or ""
+            links = []
+            if "/Annots" in page:
+                for annot_ref in page["/Annots"]:
+                    try:
+                        annot = annot_ref.get_object()
+                        if annot.get("/Subtype") == "/Link":
+                            a = annot.get("/A")
+                            if a:
+                                a_obj = a.get_object()
+                                if "/URI" in a_obj:
+                                    links.append(a_obj["/URI"])
+                    except Exception:
+                        pass
+            if links:
+                page_text += "\nLinks: " + ", ".join(links)
+            pages_text.append(page_text)
+            
+        text = "\n".join(pages_text)
 
     elif ext == ".docx":
         import docx
         doc = docx.Document(io.BytesIO(file_bytes))
         text = "\n".join(para.text for para in doc.paragraphs)
+        links = []
+        for rel in doc.part.rels.values():
+            if "hyperlink" in rel.reltype:
+                links.append(rel.target_ref)
+        if links:
+            text += "\nLinks: " + ", ".join(links)
 
     elif ext == ".txt":
         text = file_bytes.decode("utf-8", errors="ignore")

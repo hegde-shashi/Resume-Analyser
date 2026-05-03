@@ -714,8 +714,6 @@ export default function GeneratorPage({ setPage }) {
                 )}
 
                 {showCloseConfirm && (
-                    <div className="confirm-modal-overlay">
-                        <div className="confirm-modal-content card" onClick={e => e.stopPropagation()}>
                             <ConfirmModal 
                                 isOpen={showCloseConfirm}
                                 title="Discard Draft?"
@@ -724,8 +722,6 @@ export default function GeneratorPage({ setPage }) {
                                 onCancel={() => setShowCloseConfirm(false)}
                                 isDanger={true}
                             />
-                        </div>
-                    </div>
                 )}
             </div>
         </div>
@@ -1046,7 +1042,7 @@ export default function GeneratorPage({ setPage }) {
 
                 .generator-container {
                     max-width: 800px;
-                    margin: 0 auto;
+                    margin: 2rem;
                 }
                 .generator-tabs {
                     display: grid;
@@ -1304,8 +1300,7 @@ export default function GeneratorPage({ setPage }) {
                 @media (min-width: 1400px) {
                     .generator-container {
                         max-width: 1200px;
-                        margin-left: auto;
-                        margin-right: auto;
+                        margin: 2rem;
                     }
                 }
             `}</style>

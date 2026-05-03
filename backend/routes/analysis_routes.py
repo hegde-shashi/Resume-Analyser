@@ -93,35 +93,55 @@ def analyze_job():
     job_text = build_job_context(job)
 
 
-    prompt = compare_prompt(
-        resume.text_chunk,
-        job_text
-    )
-
     try:
-        answer = llm.invoke(prompt)
-    except Exception as e:
-        return jsonify({"error": handle_llm_error(e)}), 500
+        from backend.agents.graph import create_maarga_graph
+        from langchain_core.messages import HumanMessage
+        import json
+        
+        agent_app = create_maarga_graph()
+        
+        parsed_resume_details = {}
+        if hasattr(resume, 'structured_details') and resume.structured_details:
+            if isinstance(resume.structured_details, str):
+                try: parsed_resume_details = json.loads(resume.structured_details)
+                except: pass
+            else: parsed_resume_details = resume.structured_details
 
-    try:
-        # The LLM should return a JSON string, let's parse it
-        raw_content = answer.content
-        if isinstance(raw_content, list):
-            raw_content = " ".join([str(p.get("text", p)) if isinstance(p, dict) else str(p) for p in raw_content])
-            
-        import re
-        match = re.search(r"\{.*\}", str(raw_content), re.DOTALL)
-        parsed = json.loads(match.group()) if match else {}
+        # Prepare LLM config from request data
+        llm_config = {
+            "model": data.get("model") or data.get("selected_model"),
+            "mode": data.get("mode") or ("user" if data.get("api_key") else "default"),
+            "api_key": data.get("api_key")
+        }
 
+        initial_state = {
+            "messages": [HumanMessage(content="Analyze skill gap for this job")],
+            "resume_text": resume.text_chunk,
+            "parsed_resume": parsed_resume_details,
+            "job_description": job_text,
+            "parsed_jd": None,
+            "skill_gap_report": None,
+            "research_data": None,
+            "generated_resume": None,
+            "career_advice": None,
+            "llm_config": llm_config,
+            "user_intent": "analyze_skill_gap",
+            "attempts": {},
+        }
+        
+        result = agent_app.invoke(initial_state)
+        parsed = result.get("skill_gap_report", {})
+        
         try:
-            score_raw = parsed.get("score") or parsed.get("match_score") or parsed.get("Match Score") or parsed.get("matchScore") or 0
+            score_raw = parsed.get("score") or parsed.get("match_score") or 0
             score = int(score_raw) if str(score_raw).isdigit() else 0
         except (ValueError, TypeError):
             score = 0
-        matched = parsed.get("matched_skills") or parsed.get("Matched Skills") or parsed.get("matchedSkills") or []
-        missing = parsed.get("missing_skills") or parsed.get("Missing Skills") or parsed.get("missingSkills") or []
-        suggestions = parsed.get("suggestions") or parsed.get("Suggestions") or []
-        summary = parsed.get("evaluation_summary") or parsed.get("Evaluation summary") or {}
+            
+        matched = parsed.get("matched_skills", [])
+        missing = parsed.get("missing_skills", [])
+        suggestions = parsed.get("suggestions", [])
+        summary = parsed.get("evaluation_summary", {})
 
         # Save to DB
         new_analysis = Analysis(
@@ -147,5 +167,4 @@ def analyze_job():
 
     except Exception as e:
         logging.error(f"Error parsing or saving LLM response: {e}")
-        # fallback to raw content if parsing fails completely, although db save won't happen
-        return jsonify({"analysis": answer.content})
+        return jsonify({"analysis": {"error": str(e)}})

@@ -124,9 +124,38 @@ def get_resume_details():
         return jsonify(details)
         
     try:
-        llm_config = data.get("llm_config", data)
-        llm = get_llm(llm_config)
-        details = extract_resume_details(llm, resume.text_chunk)
+        from backend.agents.graph import create_maarga_graph
+        from langchain_core.messages import HumanMessage
+        
+        # Initialize graph
+        agent_app = create_maarga_graph()
+        
+        # Prepare LLM config from request data
+        llm_config = {
+            "model": data.get("model") or data.get("selected_model"),
+            "mode": data.get("mode") or ("user" if data.get("api_key") else "default"),
+            "api_key": data.get("api_key")
+        }
+
+        # Initial state
+        initial_state = {
+            "messages": [HumanMessage(content="Please extract my resume details.")],
+            "resume_text": resume.text_chunk,
+            "parsed_resume": None,
+            "job_description": None,
+            "parsed_jd": None,
+            "skill_gap_report": None,
+            "research_data": None,
+            "generated_resume": None,
+            "career_advice": None,
+            "llm_config": llm_config,
+            "user_intent": "extract_resume",
+            "attempts": {},
+        }
+        
+        # Run graph
+        result = agent_app.invoke(initial_state)
+        details = result.get("parsed_resume") or {}
         
         resume.structured_details = details
         db.session.commit()

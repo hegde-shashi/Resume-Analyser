@@ -334,6 +334,7 @@ select {
   padding: 1.5rem;
   box-shadow: var(--shadow-sm);
   transition: all var(--transition);
+  margin: 2rem;
 }
 
 .card:hover {
@@ -455,6 +456,7 @@ select {
   font-size: 0.9rem;
   transition: all var(--transition);
   outline: none;
+  resize: vertical;
 }
 
 .form-input:focus,

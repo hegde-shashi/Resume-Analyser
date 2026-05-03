@@ -20,8 +20,8 @@ def extract_resume_details(llm, resume_text):
     - first_name (Only the first/given name)
     - middle_name (Middle name if any, else empty string)
     - last_name (Only the surname/family name)
-    - email
-    - phone
+    - mail_id
+    - mobile_number
     - address (Full residential address if found)
     - city
     - state
@@ -31,14 +31,16 @@ def extract_resume_details(llm, resume_text):
     - github_link
     - portfolio_link
     - summary (Professional summary)
-    - primary_skills (String: comma-separated list of top skills)
-    - education (Array of objects. Keys MUST be exactly: 'college' (ONLY the name of the school/university, NEVER the person's name), 'degree' (e.g., Bachelor's, Master's, B.E., M.Tech), 'field_of_study' (e.g. Computer Science), 'start_date', 'end_date')
-    - experience (Array of objects. Keys MUST be exactly: 'company' (Name of the employer), 'position' (Job title), 'start_date', 'end_date', 'description' (Bullet points of work))
+    - skills (Array of objects with keys: 'main_skill' (category) and 'sub_skills' (comma separated list))
+    - education (Array of objects. Keys MUST be exactly: 'college', 'degree', 'field_of_study', 'start_date', 'end_date')
+    - experience (Array of objects. Keys MUST be exactly: 'company', 'position', 'start_date', 'end_date', 'description' (Bullet points))
+    - projects (Array of objects. Keys MUST be exactly: 'title', 'tools_used', 'project_link', 'project_details' (Bullet points))
+    - certificates (Array of objects. Keys MUST be exactly: 'name', 'issuer')
     - total_experience_years (Number)
     - is_citizen_of_india (Boolean or null)
     - requires_visa_sponsorship (Boolean or null)
-    - languages (Array of strings, e.g. ["English", "Hindi", "Kannada"]. Include the language names the person knows.)
-    - gender (Optional, if mentioned)
+    - languages (Array of strings)
+    - gender (Optional)
     
     Resume Text:
     \"\"\"{resume_text}\"\"\"
@@ -48,7 +50,12 @@ def extract_resume_details(llm, resume_text):
     
     try:
         response = llm.invoke(prompt)
-        text = response.content.replace('```json', '').replace('```', '').strip()
+        content = response.content
+        if isinstance(content, list):
+            content = " ".join([str(c.get('text', c)) if isinstance(c, dict) else str(c) for c in content])
+        if not isinstance(content, str):
+            content = str(content)
+        text = content.replace('```json', '').replace('```', '').strip()
         # Find first { and last }
         start = text.find('{')
         end = text.rfind('}') + 1

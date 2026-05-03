@@ -61,8 +61,35 @@ def resume_preview():
         jd = data_in.get("job_description")
         if not jd:
             return jsonify({"error": "Job description is required for this mode"}), 400
-        prompt = get_job_specific_prompt(resume_text, jd)
-        data = call_llm_and_parse_json(prompt, llm_config, temperature=0.7)
+            
+        from backend.agents.graph import create_maarga_graph
+        from langchain_core.messages import HumanMessage
+        import json
+        
+        agent_app = create_maarga_graph()
+        
+        parsed_resume_details = {}
+        if existing and hasattr(existing, 'structured_details') and existing.structured_details:
+            if isinstance(existing.structured_details, str):
+                try: parsed_resume_details = json.loads(existing.structured_details)
+                except: pass
+            else: parsed_resume_details = existing.structured_details
+
+        initial_state = {
+            "messages": [HumanMessage(content="Rewrite my resume to match this job description. Call resume_generator")],
+            "resume_text": resume_text,
+            "parsed_resume": parsed_resume_details,
+            "job_description": jd,
+            "parsed_jd": None,
+            "skill_gap_report": None,
+            "research_data": None,
+            "generated_resume": None,
+            "career_advice": None,
+            "llm_config": llm_config,
+        }
+        
+        result = agent_app.invoke(initial_state)
+        data = result.get("generated_resume", {})
 
     if not data:
         return jsonify({"error": "Failed to generate resume data"}), 500

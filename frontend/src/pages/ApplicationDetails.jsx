@@ -2,8 +2,10 @@ import { useState, useEffect, useCallback } from 'react'
 import api from '../api'
 import toast from 'react-hot-toast'
 import { Save, RefreshCw } from 'lucide-react'
+import { useSettings } from '../context/SettingsContext'
 
 export default function ApplicationDetails() {
+    const { llmPayload } = useSettings()
     const [details, setDetails] = useState({
         name: '', first_name: '', middle_name: '', last_name: '',
         email: '', phone: '', address: '', city: '', state: '', country: '', pincode: '',
@@ -41,7 +43,10 @@ export default function ApplicationDetails() {
     const loadDetails = useCallback(async (forceRefresh = false) => {
         setLoading(true)
         try {
-            const res = await api.post('/get_resume_details', { force_refresh: forceRefresh })
+            const res = await api.post('/get_resume_details', { 
+                force_refresh: forceRefresh,
+                ...llmPayload 
+            })
             if (res.data && !res.data.error) {
                 const data = { ...res.data }
                 // Ensure arrays are initialized
@@ -72,7 +77,10 @@ export default function ApplicationDetails() {
         e.preventDefault()
         setSaving(true)
         try {
-            await api.post('/update_resume_details', details)
+            await api.post('/update_resume_details', {
+                ...details,
+                ...llmPayload
+            })
             toast.success('Application details updated!')
         } catch (err) {
             toast.error('Failed to update details.')
@@ -133,7 +141,7 @@ export default function ApplicationDetails() {
                 </button>
             </div>
 
-            <div style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '2rem' }}>
+            <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem' }}>
 
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 <div className="card" style={{ padding: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
