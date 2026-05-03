@@ -10,7 +10,7 @@ def call_llm_and_parse_json(prompt, llm_config=None, temperature=0):
     response = llm.invoke(prompt)
     
     try:
-        # Extract JSON using regex for robustness
+        # Extract JSON using robust bracket finding
         content = response.content
         
         if isinstance(content, list):
@@ -26,13 +26,23 @@ def call_llm_and_parse_json(prompt, llm_config=None, temperature=0):
         if not isinstance(content, str):
             content = str(content)
             
-        match = re.search(r"\{.*\}", content, re.DOTALL)
+        # Remove markdown code blocks if present
+        text = content.replace('```json', '').replace('```', '').strip()
+        
+        # Find the JSON object boundaries
+        start = text.find('{')
+        end = text.rfind('}') + 1
+        
+        if start != -1 and end > 0:
+            json_str = text[start:end]
+            return json.loads(json_str)
+        
+        # Fallback to regex if simple bracket finding fails (e.g. malformed)
+        match = re.search(r"\{.*\}", text, re.DOTALL)
         if match:
             return json.loads(match.group())
-        
-        # Fallback to direct replace if regex fails
-        content = content.replace('```json', '').replace('```', '').strip()
-        return json.loads(content)
+            
+        return json.loads(text)
     except Exception as e:
         print(f"Error parsing LLM response: {e}, content type: {type(response.content)}")
         return {}

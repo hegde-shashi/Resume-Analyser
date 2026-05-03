@@ -38,9 +38,17 @@ def resume_analyzer_node(state: MaargaState):
                 content = " ".join([str(c.get('text', c)) if isinstance(c, dict) else str(c) for c in content])
             if not isinstance(content, str):
                 content = str(content)
+            
+            # Robust JSON extraction
             text = content.replace('```json', '').replace('```', '').strip()
+            start = text.find('{')
+            end = text.rfind('}') + 1
+            if start != -1 and end > 0:
+                text = text[start:end]
+            
             parsed_jd = json.loads(text)
-        except:
+        except Exception as e:
+            print(f"[ERROR] Failed to parse JD JSON: {e}")
             parsed_jd = {"raw": response.content}
         updates["parsed_jd"] = parsed_jd
         
@@ -65,9 +73,17 @@ def skill_gap_node(state: MaargaState):
             content = " ".join([str(c.get('text', c)) if isinstance(c, dict) else str(c) for c in content])
         if not isinstance(content, str):
             content = str(content)
+            
+        # Robust JSON extraction
         text = content.replace('```json', '').replace('```', '').strip()
+        start = text.find('{')
+        end = text.rfind('}') + 1
+        if start != -1 and end > 0:
+            text = text[start:end]
+            
         skill_gap = json.loads(text)
-    except:
+    except Exception as e:
+        print(f"[ERROR] Failed to parse Skill Gap JSON: {e}")
         skill_gap = {"score": 0, "matched_skills": [], "missing_skills": [], "suggestions": ["Could not parse response"], "evaluation_summary": {}}
         
     return {"skill_gap_report": skill_gap}
@@ -90,9 +106,17 @@ def resume_generator_node(state: MaargaState):
             content = " ".join([str(c.get('text', c)) if isinstance(c, dict) else str(c) for c in content])
         if not isinstance(content, str):
             content = str(content)
+            
+        # Robust JSON extraction
         text = content.replace('```json', '').replace('```', '').strip()
+        start = text.find('{')
+        end = text.rfind('}') + 1
+        if start != -1 and end > 0:
+            text = text[start:end]
+            
         generated = json.loads(text)
-    except:
+    except Exception as e:
+        print(f"[ERROR] Failed to parse Generated Resume JSON: {e}")
         generated = {"error": "Could not generate structured resume", "raw": response.content}
         
     return {"generated_resume": generated}
