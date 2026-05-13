@@ -537,7 +537,7 @@ def get_supervisor_prompt(has_resume: bool, has_jd: bool, has_skill_gap: bool, h
             Return ONLY the agent name, nothing else.
         """
 
-def get_skill_gap_prompt(parsed_resume, parsed_jd):
+def get_skill_gap_prompt(resume_content, parsed_jd):
     return f"""
     You are an automated Applicant Tracking System (ATS) evaluation engine.
     Your task is to score a resume against a job description using strict,
@@ -578,8 +578,8 @@ def get_skill_gap_prompt(parsed_resume, parsed_jd):
 
     Skill Classification:
     - Mandatory skills → 70% of skill score (35 points total)
-    - Important skills → 20% of skill score (10 points total)
-    - Nice-to-Have skills → 10% of skill score (5 points total)
+    - If Important skills mentioned in job→ 20% of skill score (10 points total) otherwise not include this, and divide this points to mandatory skills and nice-to-have skills in proportion to their total points.
+    - Nice-to-Have skills → 10% of skill score (5 points total)  If this skills not mentioned in job, then divide this points to mandatory skills and nice-to-have skills in proportion to their total points.
 
     Deduction Rules:
     - Missing ONE mandatory skill → -8 points.
@@ -625,10 +625,21 @@ def get_skill_gap_prompt(parsed_resume, parsed_jd):
     4. RESUME QUALITY (0-5)
     ATS usability and clarity ONLY.
 
+    Note: don't add these points(like -8 points for not having some skills, -5 points for seniority mismatch, etc) in the json response, its just for your reference.
+
     Scoring Rules:
     - ATS-parsable format (clear sections, no tables/images) → +2
     - Clear job titles, dates, and progression → +1
     - Strong keyword alignment with JD → +2
+
+    ────────────────────────────────
+    STRICT SUMMARY RULES (FOR evaluation_summary)
+    ────────────────────────────────
+    - Provide professional, recruiter-style qualitative feedback ONLY.
+    - NEVER include mathematical calculations (e.g., do NOT show "10 * -8 = -80").
+    - NEVER mention specific point deductions or subtractions (e.g., do NOT mention "-5 points" or "limits score to 15").
+    - Focus on the reasoning: Describe the gap (e.g., "Significant missing mandatory skills") instead of showing the math.
+    - Use clean, professional language suitable for a candidate to read.
 
     ────────────────────────────────
     OUTPUT FORMAT (STRICT JSON ONLY)
@@ -641,20 +652,20 @@ def get_skill_gap_prompt(parsed_resume, parsed_jd):
     "missing_skills": [<list of missing mandatory/important skill strings>],
     "suggestions": [<actionable, resume-specific improvement points>],
     "evaluation_summary": "#### Evaluation Breakdown
-    - **Experience Match (X/30):** <explicit justification>
-    - **Skill Match (X/50):** <explicit justification>
-    - **Work / Project Relevance (X/25):** <explicit justification>
-    - **Resume Quality (X/5):** <explicit justification>"
+    - **Experience Match (X/30):** <Qualitative justification only. No math/deductions.>
+    - **Skill Match (X/50):** <Qualitative justification only. No math/deductions.>
+    - **Work / Project Relevance (X/25):** <Qualitative justification only. No math/deductions.>
+    - **Resume Quality (X/5):** <Qualitative justification only. No math/deductions.>"
     }}
 
     ────────────────────────────────
     INPUT DATA
     ────────────────────────────────
-    Resume:
-    {json.dumps(parsed_resume)[:2000] if parsed_resume else ''}
+    Resume Data:
+    {json.dumps(resume_content) if isinstance(resume_content, dict) else resume_content}
 
     Job Description:
-    {json.dumps(parsed_jd)[:2000] if parsed_jd else ''}
+    {json.dumps(parsed_jd) if isinstance(parsed_jd, dict) else parsed_jd}
 
     ────────────────────────────────
     FINAL DIRECTIVE

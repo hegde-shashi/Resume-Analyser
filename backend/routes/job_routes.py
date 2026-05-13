@@ -14,6 +14,7 @@ import threading
 from flask import current_app
 from backend.services.job_processor import process_job_task
 from backend.utils.utils import clean
+from backend.services.job_extractor import extract_job_details
 
 
 job_bp = Blueprint('job', __name__)
@@ -41,7 +42,7 @@ def parse_llm_response(text):
 
 @job_bp.route('/parse_job', methods=['POST'])
 def parse_job():
-    data = request.json
+    data = request.json or {}
     link = data.get('job_link', '')
 
     try:
@@ -53,36 +54,11 @@ def parse_job():
         return jsonify({"scrape_success": False, "message": "Could not scrape job page. Please paste job description."})
 
     try:
-        from backend.agents.graph import create_maarga_graph
-        from langchain_core.messages import HumanMessage
+        llm = get_llm(data)
+        parsed_data = extract_job_details(llm, clean_html)
         
-        agent_app = create_maarga_graph()
-        
-        # Prepare LLM config from request data
-        llm_config = {
-            "model": data.get("model") or data.get("selected_model"),
-            "mode": data.get("mode") or ("user" if data.get("api_key") else "default"),
-            "api_key": data.get("api_key")
-        }
-
-        initial_state = {
-            "messages": [HumanMessage(content="Parse this job description")],
-            "resume_text": None,
-            "parsed_resume": None,
-            "job_description": clean_html,
-            "parsed_jd": None,
-            "skill_gap_report": None,
-            "research_data": None,
-            "generated_resume": None,
-            "career_advice": None,
-            "llm_config": llm_config,
-        }
-        
-        result = agent_app.invoke(initial_state)
-        parsed_data = result.get("parsed_jd") or {}
-        
-        # Inject the link if it's missing from LLM response
-        if 'job_link' not in parsed_data or not parsed_data['job_link']:
+        if not parsed_data:
+            raise ValueError("AI could not extract structured data from this content.")
             parsed_data['job_link'] = link
             
         return jsonify({"scrape_success": True, "llm_free": True, "job_data": parsed_data})
@@ -100,38 +76,16 @@ def parse_job():
 
 @job_bp.route('/parse_jd_txt', methods=['POST'])
 def parse_jd():
-    data = request.json
+    data = request.json or {}
     jd   = data.get('job_description', '')
     link = data.get('job_link', '')
 
     try:
-        from backend.agents.graph import create_maarga_graph
-        from langchain_core.messages import HumanMessage
+        llm = get_llm(data)
+        parsed_data = extract_job_details(llm, jd)
         
-        agent_app = create_maarga_graph()
-        
-        # Prepare LLM config from request data
-        llm_config = {
-            "model": data.get("model") or data.get("selected_model"),
-            "mode": data.get("mode") or ("user" if data.get("api_key") else "default"),
-            "api_key": data.get("api_key")
-        }
-
-        initial_state = {
-            "messages": [HumanMessage(content="Parse this job description")],
-            "resume_text": None,
-            "parsed_resume": None,
-            "job_description": jd,
-            "parsed_jd": None,
-            "skill_gap_report": None,
-            "research_data": None,
-            "generated_resume": None,
-            "career_advice": None,
-            "llm_config": llm_config,
-        }
-        
-        result = agent_app.invoke(initial_state)
-        parsed_data = result.get("parsed_jd") or {}
+        if not parsed_data:
+            raise ValueError("AI could not extract structured data from this content.")
         
         # Inject the link if it's missing from LLM response
         if 'job_link' not in parsed_data or not parsed_data['job_link']:
@@ -153,7 +107,7 @@ def parse_jd():
 @jwt_required()
 def save_job():
     user_id = int(get_jwt_identity())
-    data    = request.get_json()
+    data    = request.get_json() or {}
     logging.info(f"Save job request from user {user_id}. Data keys: {list(data.keys()) if data else 'None'}")
 
     # Only pass fields that exist on the model
@@ -183,7 +137,7 @@ def save_job():
             is_parsed = True if job_data.get('job_title') else False
             
         llm_config = {
-            "model": data.get("model") or data.get("selected_model") or "gemini-2.5-flash-lite",
+            "model": data.get("model") or data.get("selected_model") or "gemini-1.5-flash",
             "mode": "user" if data.get("api_key") else "default",
             "api_key": data.get("api_key")
         }
@@ -209,7 +163,7 @@ def save_job():
         return jsonify({"message": "Job saved", "job_id": job.id, "is_parsed": job.is_parsed, "error": job.error_message})
 
     except Exception as e:
-        logging.error(f"Error saving job: {e}")
+        logging.error(f"Error in extract_job_details: {e}")
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
@@ -276,7 +230,7 @@ def delete_job(job_id):
 @jwt_required()
 def update_progress():
     user_id = int(get_jwt_identity())
-    data    = request.get_json()
+    data    = request.get_json() or {}
 
     job = Jobs.query.filter_by(id=data["job_id"], user_id=user_id).first()
 
@@ -292,7 +246,7 @@ def update_progress():
 @jwt_required()
 def update_job():
     user_id = int(get_jwt_identity())
-    data = request.get_json()
+    data = request.get_json() or {}
     job_id = data.get("id")
 
     job = Jobs.query.filter_by(id=job_id, user_id=user_id).first()
@@ -315,7 +269,7 @@ def update_job():
 @jwt_required()
 def reprocess_job():
     user_id = int(get_jwt_identity())
-    data = request.get_json()
+    data = request.get_json() or {}
     job_id = data.get("job_id")
 
     job = Jobs.query.filter_by(id=job_id, user_id=user_id).first()
@@ -330,7 +284,7 @@ def reprocess_job():
 
     # Get configuration from frontend request (NOT stored in DB)
     llm_config = {
-        "model": data.get("model") or data.get("selected_model") or "gemini-2.5-flash-lite",
+        "model": data.get("model") or data.get("selected_model") or "gemini-1.5-flash",
         "mode": "user" if data.get("api_key") else "default",
         "api_key": data.get("api_key")
     }

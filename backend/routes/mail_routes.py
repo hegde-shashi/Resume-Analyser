@@ -16,7 +16,7 @@ def generate_mail():
 
     user_id = get_jwt_identity()
 
-    data = request.get_json()
+    data = request.get_json() or {}
 
     llm = get_llm(data, temperature=0.6)
 
@@ -52,7 +52,7 @@ def generate_cover_letter():
 
     user_id = get_jwt_identity()
 
-    data = request.get_json()
+    data = request.get_json() or {}
 
     llm = get_llm(data, temperature=0.6)
 

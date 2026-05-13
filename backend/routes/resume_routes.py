@@ -16,8 +16,8 @@ resume_bp = Blueprint("resume", __name__)
 @resume_bp.route("/upload_resume", methods=["POST"])
 @jwt_required()
 def upload_resume():
-    data     = request.get_json()
     user_id  = int(get_jwt_identity())
+    data     = request.get_json() or {}
     file_b64 = data.get("file")
     file_name = data.get("file_name", "resume.pdf")
 
@@ -31,34 +31,42 @@ def upload_resume():
         if not chunks:
             return {"error": "Could not extract text from the file"}, 400
 
-        # Validate it's a resume (pass first 2000 chars as a string)
+        # 1. Read chunks and validate
         llm = get_llm(data)
         sample_text = " ".join(chunks)[:2000]
         if not validate_resume(llm, sample_text):
             return {"error": "Uploaded file does not appear to be a resume"}, 400
 
-        # Remove existing resume
-        existing = Resume.query.filter_by(user_id=user_id).first()
-        if existing:
-            delete_resume_embeddings(user_id)
-            db.session.delete(existing)
-            db.session.commit()
-
-        # Store embeddings
-        collection_name = store_resume_embeddings(chunks, user_id)
-
-        # Save to DB
+        # 2. Prepare new data
         full_text = "\n\n".join(chunks)
-        resume = Resume(
+        new_resume = Resume(
             user_id=user_id,
             filename=file_name,
-            chroma_collection=collection_name,
             text_chunk=full_text
         )
-        db.session.add(resume)
-        db.session.commit()
 
-        return jsonify({"message": "Resume uploaded successfully"})
+        # 3. Handle existing resume replacement
+        existing = Resume.query.filter_by(user_id=user_id).first()
+        
+        # 4. Store NEW embeddings and update DB in one go
+        try:
+            # We clear and re-store in the same user-specific collection
+            delete_resume_embeddings(user_id)
+            api_key = data.get('api_key') if data.get('mode') == 'user' else None
+            collection_name = store_resume_embeddings(chunks, user_id, api_key=api_key)
+            
+            new_resume.chroma_collection = collection_name
+            
+            if existing:
+                db.session.delete(existing)
+            
+            db.session.add(new_resume)
+            db.session.commit()
+            
+            return jsonify({"message": "Resume uploaded successfully"})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": f"Failed to store resume: {str(e)}"}), 500
 
     except Exception as e:
         db.session.rollback()
@@ -124,38 +132,8 @@ def get_resume_details():
         return jsonify(details)
         
     try:
-        from backend.agents.graph import create_maarga_graph
-        from langchain_core.messages import HumanMessage
-        
-        # Initialize graph
-        agent_app = create_maarga_graph()
-        
-        # Prepare LLM config from request data
-        llm_config = {
-            "model": data.get("model") or data.get("selected_model"),
-            "mode": data.get("mode") or ("user" if data.get("api_key") else "default"),
-            "api_key": data.get("api_key")
-        }
-
-        # Initial state
-        initial_state = {
-            "messages": [HumanMessage(content="Please extract my resume details.")],
-            "resume_text": resume.text_chunk,
-            "parsed_resume": None,
-            "job_description": None,
-            "parsed_jd": None,
-            "skill_gap_report": None,
-            "research_data": None,
-            "generated_resume": None,
-            "career_advice": None,
-            "llm_config": llm_config,
-            "user_intent": "extract_resume",
-            "attempts": {},
-        }
-        
-        # Run graph
-        result = agent_app.invoke(initial_state)
-        details = result.get("parsed_resume") or {}
+        llm = get_llm(llm_config)
+        details = extract_resume_details(llm, resume.text_chunk)
         
         resume.structured_details = details
         db.session.commit()

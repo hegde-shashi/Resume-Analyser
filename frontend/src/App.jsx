@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
 import { SettingsProvider } from './context/SettingsContext'
+import { DataProvider } from './context/DataContext'
 import AuthPage from './pages/AuthPage'
 import Dashboard from './pages/Dashboard'
 import ResumePage from './pages/ResumePage'
@@ -22,7 +23,6 @@ const PAGE_TITLES = {
   generator: 'Resume Generator',
   chat: 'AI Chat Assistant',
 }
-
 
 function AppShell() {
   const { isAuth } = useAuth()
@@ -68,21 +68,23 @@ export default function App() {
     <ThemeProvider>
       <AuthProvider>
         <SettingsProvider>
-          <BrowserRouter>
-            <Toaster
-              position="top-right"
-              toastOptions={{
-                style: {
-                  background: 'var(--bg-card)',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--border)',
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '0.875rem',
-                },
-              }}
-            />
-            <AppShell />
-          </BrowserRouter>
+          <DataProvider>
+            <BrowserRouter>
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  style: {
+                    background: 'var(--bg-card)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--border)',
+                    fontFamily: 'Inter, sans-serif',
+                    fontSize: '0.875rem',
+                  },
+                }}
+              />
+              <AppShell />
+            </BrowserRouter>
+          </DataProvider>
         </SettingsProvider>
       </AuthProvider>
     </ThemeProvider>

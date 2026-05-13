@@ -65,4 +65,4 @@ def extract_resume_details(llm, resume_text):
         return json.loads(text)
     except Exception as e:
         logging.error(f"Error in extract_resume_details: {e}")
-        return {}
+        raise e

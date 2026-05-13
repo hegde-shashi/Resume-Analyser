@@ -23,7 +23,7 @@ def resume_preview():
     
     # Handle both multipart/form-data and JSON
     if request.is_json:
-        data_in = request.json
+        data_in = request.json or {}
     else:
         data_in = request.form
 
@@ -62,11 +62,7 @@ def resume_preview():
         if not jd:
             return jsonify({"error": "Job description is required for this mode"}), 400
             
-        from backend.agents.graph import create_maarga_graph
-        from langchain_core.messages import HumanMessage
-        import json
-        
-        agent_app = create_maarga_graph()
+        from backend.ai.prompt_template import get_resume_rewrite_prompt
         
         parsed_resume_details = {}
         if existing and hasattr(existing, 'structured_details') and existing.structured_details:
@@ -75,21 +71,8 @@ def resume_preview():
                 except: pass
             else: parsed_resume_details = existing.structured_details
 
-        initial_state = {
-            "messages": [HumanMessage(content="Rewrite my resume to match this job description. Call resume_generator")],
-            "resume_text": resume_text,
-            "parsed_resume": parsed_resume_details,
-            "job_description": jd,
-            "parsed_jd": None,
-            "skill_gap_report": None,
-            "research_data": None,
-            "generated_resume": None,
-            "career_advice": None,
-            "llm_config": llm_config,
-        }
-        
-        result = agent_app.invoke(initial_state)
-        data = result.get("generated_resume", {})
+        prompt = get_resume_rewrite_prompt(parsed_resume_details, jd)
+        data = call_llm_and_parse_json(prompt, llm_config, temperature=0.7)
 
     if not data:
         return jsonify({"error": "Failed to generate resume data"}), 500
@@ -99,7 +82,7 @@ def resume_preview():
 @resume_gen_bp.route("/resume/generate-resume", methods=["POST"])
 @jwt_required()
 def generate_resume_api():
-    data = request.json
+    data = request.json or {}
     if not data:
         return jsonify({"error": "No data provided"}), 400
 

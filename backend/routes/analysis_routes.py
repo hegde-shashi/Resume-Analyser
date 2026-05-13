@@ -6,7 +6,7 @@ from backend.services.job_services import build_job_context
 from backend.database.db import db
 from backend.models.job_model import Jobs
 from backend.models.resume_model import Resume
-from backend.database.chroma_db import get_resume_retriever
+from backend.database.chroma_db import get_resume_retriever, delete_resume_embeddings
 from backend.ai.llm_client import get_llm, handle_llm_error
 from backend.ai.prompt_template import compare_prompt
 import json
@@ -94,11 +94,8 @@ def analyze_job():
 
 
     try:
-        from backend.agents.graph import create_maarga_graph
-        from langchain_core.messages import HumanMessage
-        import json
-        
-        agent_app = create_maarga_graph()
+        from backend.services.ai_service import call_llm_and_parse_json
+        from backend.ai.prompt_template import get_skill_gap_prompt
         
         parsed_resume_details = {}
         if hasattr(resume, 'structured_details') and resume.structured_details:
@@ -106,42 +103,32 @@ def analyze_job():
                 try: parsed_resume_details = json.loads(resume.structured_details)
                 except: pass
             else: parsed_resume_details = resume.structured_details
-
+        
+        # If structured details are missing, use the raw text chunk
+        resume_data = parsed_resume_details if parsed_resume_details else resume.text_chunk
+        
         # Prepare LLM config from request data
-        llm_config = {
-            "model": data.get("model") or data.get("selected_model"),
-            "mode": data.get("mode") or ("user" if data.get("api_key") else "default"),
-            "api_key": data.get("api_key")
-        }
+        llm_config = data or {}
 
-        initial_state = {
-            "messages": [HumanMessage(content="Analyze skill gap for this job")],
-            "resume_text": resume.text_chunk,
-            "parsed_resume": parsed_resume_details,
-            "job_description": job_text,
-            "parsed_jd": None,
-            "skill_gap_report": None,
-            "research_data": None,
-            "generated_resume": None,
-            "career_advice": None,
-            "llm_config": llm_config,
-            "user_intent": "analyze_skill_gap",
-            "attempts": {},
-        }
+        prompt = get_skill_gap_prompt(resume_data, job_text)
+        parsed = call_llm_and_parse_json(prompt, llm_config, temperature=0)
         
-        result = agent_app.invoke(initial_state)
-        parsed = result.get("skill_gap_report", {})
-        
+        if not parsed or (not parsed.get("score") and not parsed.get("matched_skills") and not parsed.get("evaluation_summary")):
+             return jsonify({"error": "AI failed to generate analysis. This may be due to high traffic or an invalid API key. Please try again."}), 500
+
         try:
             score_raw = parsed.get("score") or parsed.get("match_score") or 0
-            score = int(score_raw) if str(score_raw).isdigit() else 0
+            # Handle cases where score might be a string like "75/100"
+            if isinstance(score_raw, str) and '/' in score_raw:
+                score_raw = score_raw.split('/')[0]
+            score = int(score_raw) if str(score_raw).strip().isdigit() else 0
         except (ValueError, TypeError):
             score = 0
             
         matched = parsed.get("matched_skills", [])
         missing = parsed.get("missing_skills", [])
         suggestions = parsed.get("suggestions", [])
-        summary = parsed.get("evaluation_summary", {})
+        summary = parsed.get("evaluation_summary", "")
 
         # Save to DB
         new_analysis = Analysis(

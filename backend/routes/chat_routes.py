@@ -18,9 +18,12 @@ chat_bp = Blueprint("chat", __name__)
 def chat():
     try:
         user_id = get_jwt_identity()
-        data = request.get_json()
+        data = request.get_json() or {}
         llm = get_llm(data, streaming=True, temperature=0.6, enable_tools=True)
 
+        if "job_id" not in data:
+            return jsonify({"error": "Missing job_id in request"}), 400
+            
         try:
             db_job_id = int(data["job_id"])
             db_user_id = int(user_id)
@@ -69,7 +72,8 @@ def chat():
                 history_text += f"Assistant: {msg['content']}\n"
 
         
-        retriever = get_resume_retriever(user_id)
+        api_key = data.get('api_key') if data.get('mode') == 'user' else None
+        retriever = get_resume_retriever(user_id, api_key=api_key)
         docs = retriever.invoke(question)
         context_text = "\n\n".join([doc.page_content for doc in docs])
 

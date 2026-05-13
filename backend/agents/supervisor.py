@@ -37,6 +37,15 @@ def supervisor_node(state: MaargaState) -> dict:
         print("[SUPERVISOR] Resume not yet parsed. Routing to analyzer.")
         return {"next_agent": "resume_analyzer", "last_agent": "resume_analyzer", "attempts": {"resume_analyzer": 1}}
 
+    # [OPTIMIZATION] Shortcut for JD parsing
+    if user_intent == "parse_jd":
+        if has_jd:
+            print("[SUPERVISOR] JD parsing complete. Finishing.")
+            return {"next_agent": "FINISH"}
+        else:
+            print("[SUPERVISOR] JD not yet parsed. Routing to analyzer.")
+            return {"next_agent": "resume_analyzer", "last_agent": "resume_analyzer", "attempts": {"resume_analyzer": 1}}
+
     # [OPTIMIZATION] Shortcut for skill gap analysis
     if user_intent == "analyze_skill_gap":
         if has_skill_gap:
@@ -79,9 +88,16 @@ def supervisor_node(state: MaargaState) -> dict:
     attempts = state.get("attempts") or {}
     
     # If the same agent is called again but didn't produce the expected data, stop
-    if next_agent == "resume_analyzer" and last_agent == "resume_analyzer" and not has_resume:
-        print(f"[SUPERVISOR] Loop detected for resume_analyzer. Stopping.")
-        next_agent = "FINISH"
+    # Loop Detection Logic: Stop if agent was already called but failed to produce the target data
+    if next_agent == "resume_analyzer" and last_agent == "resume_analyzer":
+        # Check if we were trying to get resume OR jd
+        if (user_intent == "extract_resume" and not has_resume) or (user_intent == "parse_jd" and not has_jd):
+            print(f"[SUPERVISOR] Loop detected for resume_analyzer ({user_intent}). Stopping.")
+            next_agent = "FINISH"
+        elif not has_resume and not has_jd:
+            # General case fallback
+            print(f"[SUPERVISOR] Loop detected for resume_analyzer (no data progress). Stopping.")
+            next_agent = "FINISH"
     
     # Global max attempts per agent
     agent_attempts = attempts.get(next_agent, 0)

@@ -20,12 +20,20 @@ def handle_llm_error(e):
     else:
         return f"AI Service Error: {str(e)}"
 
-def get_llm(data, streaming=False, temperature=0, enable_tools=False):
+def get_llm(data=None, streaming=False, temperature=0, enable_tools=False):
+    if data is None:
+        data = {}
     try:
         model = data.get('model') or data.get('selected_model') or 'gemini-2.5-flash-lite'
+        
+        # Infer mode if api_key is present but mode is not 'user'
         mode = data.get('mode') or 'default'
-    
-        if mode == 'user':
+        api_key_in_data = data.get('api_key')
+        
+        if api_key_in_data:
+            mode = 'user'
+            api_key = api_key_in_data
+        elif mode == 'user':
             api_key = data.get('api_key')
         else:
             api_key = GOOGLE_API_KEY
@@ -39,7 +47,7 @@ def get_llm(data, streaming=False, temperature=0, enable_tools=False):
             "streaming": streaming,
             "temperature": temperature,
             "max_retries": 1,        # Don't wait 60s for retries if quota is hit
-            "request_timeout": 20    # Fail fast on network issues
+            "request_timeout": 60    # Give more time for complex parsing
         }
 
         return ChatGoogleGenerativeAI(**llm_params)

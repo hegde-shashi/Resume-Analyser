@@ -6,7 +6,7 @@ def call_llm_and_parse_json(prompt, llm_config=None, temperature=0):
     """
     Helper to call LLM with a prompt and extract/parse JSON from its response.
     """
-    llm = get_llm(llm_config or {"model": "gemini-2.5-flash-lite", "mode": "default"}, temperature=temperature)
+    llm = get_llm(llm_config or {"model": "gemini-1.5-flash", "mode": "default"}, temperature=temperature)
     response = llm.invoke(prompt)
     
     try:

@@ -71,7 +71,7 @@ def process_job_task(app, job_id, llm_config=None):
                 if not is_job_valid(parsed):
                     logging.info(f"Job {job_id} found to be garbage content after parsing. Stopping retries.")
                     job.is_parsed = False
-                    job.retry_count = 5 # Prevent auto-retries, let user restart
+                    job.retry_count = 1 # Prevent auto-retries, let user restart
                     job.error_message = "Low quality content: AI could not extract enough job details from this link. Try pasting the JD manually."
                     db.session.commit()
                     return
@@ -104,7 +104,12 @@ def process_job_task(app, job_id, llm_config=None):
             error_text = handle_llm_error(e)
             logging.error(f"Immediate parse failed for job {job_id}: {error_text}")
             job.error_message = error_text
-            job.retry_count = (job.retry_count or 0) + 1
+            
+            # Stop retries if it's an API Key error
+            if "api key" in str(e).lower():
+                job.retry_count = 1
+            else:
+                job.retry_count = (job.retry_count or 0) + 1
             db.session.commit()
 
 
@@ -114,8 +119,8 @@ def process_pending_jobs(app):
     while True:
         try:
             with app.app_context():
-                # Only try to parse jobs that are not parsed and have tried less than 5 times
-                pending_jobs = Jobs.query.filter(Jobs.is_parsed == False, Jobs.retry_count < 5).all()
+                # Only try to parse jobs that are not parsed and have tried less than 1 time
+                pending_jobs = Jobs.query.filter(Jobs.is_parsed == False, Jobs.retry_count < 1).all()
                 if pending_jobs:
                     logging.info(f"Found {len(pending_jobs)} pending jobs to process.")
                     
@@ -141,7 +146,7 @@ def process_pending_jobs(app):
                                 if not is_job_valid(parsed):
                                     logging.info(f"Pending Job {job.id} found to be garbage. Stopping retries.")
                                     job.is_parsed = False
-                                    job.retry_count = 5
+                                    job.retry_count = 1
                                     job.error_message = "Low quality content: AI could not extract enough job details from this link. Try pasting the JD manually."
                                     db.session.commit()
                                     continue
@@ -183,9 +188,16 @@ def process_pending_jobs(app):
                             error_text = handle_llm_error(e)
                             logging.error(f"Error processing pending job {job.id}: {error_text}")
                             job.error_message = error_text
+                            
+                            # Stop retries if it's an API Key error
+                            if "api key" in str(e).lower():
+                                job.retry_count = 1
+                                db.session.commit()
+                                continue # Move to next job, but don't retry this one again
+                                
                             job.retry_count = (job.retry_count or 0) + 1
                             db.session.commit()
-                            # On ANY error, we pause for a bit
+                            # On OTHER errors (network/timeout), we break the loop and wait
                             break
 
                 

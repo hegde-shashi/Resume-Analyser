@@ -7,12 +7,13 @@ import os
 chroma_path = os.path.join(PERSISTENT_DIR, "chroma_db")
 client = chromadb.PersistentClient(path=chroma_path)
 
-embedding = google_embedding()
 
 
-def store_resume_embeddings(chunks, user_id):
+
+def store_resume_embeddings(chunks, user_id, api_key=None):
 
     collection_name = f"resume_user_{user_id}"
+    embedding = google_embedding(api_key)
 
     vector_store = Chroma(
         collection_name=collection_name,
@@ -31,9 +32,10 @@ def store_resume_embeddings(chunks, user_id):
     return collection_name
 
 
-def get_resume_retriever(user_id):
+def get_resume_retriever(user_id, api_key=None):
 
     collection_name = f"resume_user_{user_id}"
+    embedding = google_embedding(api_key)
 
     vector_store = Chroma(
         collection_name=collection_name,

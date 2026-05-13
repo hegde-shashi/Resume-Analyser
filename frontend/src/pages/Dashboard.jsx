@@ -1,6 +1,5 @@
-import { useEffect, useState, useCallback } from 'react'
-import api from '../api'
 import { useAuth } from '../context/AuthContext'
+import { useData } from '../context/DataContext'
 import { Briefcase, BarChart2, TrendingUp, ArrowRight } from 'lucide-react'
 
 const PROGRESS_COLORS = {
@@ -15,35 +14,7 @@ const PROGRESS_COLORS = {
 
 export default function Dashboard({ setPage }) {
     const { username } = useAuth()
-    const [jobs, setJobs] = useState([])
-    const [resume, setResume] = useState(null)
-    const [loading, setLoading] = useState(true)
-
-    const loadData = useCallback(() => {
-        Promise.all([
-            api.get('/get_jobs'),
-            api.get('/get_resume'),
-        ]).then(([j, r]) => {
-            setJobs(j.data)
-            setResume(r.data)
-        }).finally(() => setLoading(false))
-    }, [])
-
-    useEffect(() => {
-        loadData()
-
-        // 1. Refresh when window gains focus (user comes back from extension)
-        const onFocus = () => loadData()
-        window.addEventListener('focus', onFocus)
-
-        // 2. Refresh every 30 seconds in the background
-        const interval = setInterval(loadData, 30000)
-
-        return () => {
-            window.removeEventListener('focus', onFocus)
-            clearInterval(interval)
-        }
-    }, [loadData])
+    const { jobs, resume, loading } = useData()
 
     const counts = jobs.reduce((acc, j) => {
         acc[j.progress] = (acc[j.progress] || 0) + 1
@@ -64,22 +35,20 @@ export default function Dashboard({ setPage }) {
     )
 
     return (
-        <div>
+        <div className="dashboard-container">
             <div className="page-header">
                 <h2 className="mobile-hidden">Dashboard</h2>
                 <p>Hi {username || 'there'}, here's an overview of your job application journey</p>
             </div>
 
             {/* Stats — each card navigates to its page */}
-            <div className="grid-3" style={{ margin: '2rem' }}>
+            <div className="grid-3 stat-grid" style={{ padding: '0 2rem', marginTop: '2rem' }}>
                 {stats.map(s => (
                     <div
                         className="stat-card"
                         key={s.label}
                         onClick={() => setPage(s.page)}
                         style={{ cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s' }}
-                        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.03)'; e.currentTarget.style.boxShadow = 'var(--shadow-lg)' }}
-                        onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}
                     >
                         <div className="stat-icon" style={{ background: `${s.color}22` }}>
                             <span style={{ color: s.color }}>{s.icon}</span>
@@ -92,17 +61,15 @@ export default function Dashboard({ setPage }) {
 
             {/* Resume tile — navigates to resume page */}
             <div
-                className="card"
-                style={{ marginBottom: '1.5rem', cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s' }}
+                className="card resume-card"
+                style={{ cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s' }}
                 onClick={() => setPage('resume')}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = 'var(--shadow-lg)' }}
-                onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}
             >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
                         <div className="card-title">Resume</div>
                         {resume?.resume_exists
-                            ? <div className="card-sub">📄 {resume.resume_name} &nbsp;·&nbsp; Uploaded {resume.created_at}</div>
+                            ? <div className="card-sub" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>📄 {resume.resume_name}</div>
                             : <div className="card-sub" style={{ color: 'var(--warning)' }}>No resume uploaded yet. Click to upload.</div>
                         }
                     </div>
@@ -116,72 +83,45 @@ export default function Dashboard({ setPage }) {
             </div>
 
             {/* Recent jobs — each row navigates to jobs page */}
-            <div className="card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <div className="card recent-jobs-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                     <div className="card-title" style={{ margin: 0 }}>Recent Applications</div>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button
-                            className="btn btn-ghost btn-sm"
-                            onClick={() => {
-                                sessionStorage.setItem('openAddJob', 'true')
-                                setPage('jobs')
-                            }}
-                            style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--accent)' }}
-                        >
-                            + Add Job
-                        </button>
-                        <button
-                            className="btn btn-ghost btn-sm"
-                            onClick={() => setPage('jobs')}
-                            style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
-                        >
-                            View all <ArrowRight size={13} />
-                        </button>
-                    </div>
+                    <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => setPage('jobs')}
+                        style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--accent)' }}
+                    >
+                        View all <ArrowRight size={13} />
+                    </button>
                 </div>
 
                 {jobs.length === 0 ? (
                     <div className="empty-state" style={{ padding: '2rem' }}>
                         <Briefcase size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.3 }} />
-                        <p>
-                            No jobs tracked yet.{' '}
-                            <span
-                                style={{ color: 'var(--accent)', cursor: 'pointer', textDecoration: 'underline' }}
-                                onClick={() => setPage('jobs')}
-                            >
-                                Add some in the Jobs tab!
-                            </span>
-                        </p>
+                        <p>No jobs tracked yet.</p>
                     </div>
                 ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         {jobs.slice(0, 5).map(j => (
                             <div
                                 key={j.job_id || j.ui_index}
                                 onClick={() => setPage('jobs')}
+                                className="recent-job-item"
                                 style={{
                                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                    padding: '0.75rem', background: 'transparent',
-                                    borderRadius: 'var(--radius-sm)',
+                                    padding: '0.75rem', background: 'var(--bg-hover)',
+                                    borderRadius: 'var(--radius-md)',
                                     cursor: 'pointer', transition: 'background 0.15s',
                                 }}
-                                onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent-glow)' }}
-                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
                             >
-                                <div>
-                                    <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{j.company}</div>
-                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                        {j.is_parsed === false ? (
-                                            <span style={{ color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                                 AI Processing...
-                                            </span>
-                                        ) : (
-                                            <>{j.job_title} <span className="mobile-hidden">· {j.location}</span></>
-                                        )}
+                                <div style={{ minWidth: 0, flex: 1 }}>
+                                    <div style={{ fontWeight: 700, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{j.company}</div>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {j.is_parsed === false ? 'AI Processing...' : j.job_title}
                                     </div>
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <span className={`badge ${PROGRESS_COLORS[j.progress] || 'badge-muted'}`}>{j.progress || 'Applied'}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                                    <span className={`badge ${PROGRESS_COLORS[j.progress] || 'badge-muted'}`} style={{ fontSize: '0.65rem' }}>{j.progress || 'Applied'}</span>
                                     <ArrowRight size={14} style={{ color: 'var(--text-muted)' }} />
                                 </div>
                             </div>
@@ -189,6 +129,16 @@ export default function Dashboard({ setPage }) {
                     </div>
                 )}
             </div>
+
+            <style>{`
+                @media (max-width: 1024px) {
+                    .stat-grid { grid-template-columns: 1fr 1fr !important; padding: 1rem !important; margin: 0 !important; gap: 0.75rem !important; }
+                    .stat-grid > :last-child { grid-column: span 2; }
+                    .card { margin: 0.75rem 1rem !important; padding: 1.25rem !important; }
+                    .resume-card { margin-top: 1rem !important; }
+                    .recent-job-item { padding: 1rem !important; }
+                }
+            `}</style>
         </div>
     )
 }
