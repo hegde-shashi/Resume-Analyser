@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 import api from '../api'
 import toast from 'react-hot-toast'
-import { Plus, Trash2, FileText, Briefcase, ChevronDown, ChevronUp, RefreshCw, Search, Edit2, Check, X, ListFilter, AlertCircle } from 'lucide-react'
+import { Plus, Trash2, FileText, Briefcase, ChevronDown, ChevronUp, RefreshCw, Search, Edit2, Check, X, ListFilter, AlertCircle, Mail } from 'lucide-react'
 import { useSettings } from '../context/SettingsContext'
 import { useData } from '../context/DataContext'
 import ConfirmModal from '../components/ConfirmModal'
@@ -212,7 +212,7 @@ function Section({ label, items }) {
     )
 }
 
-function JobCard({ job, onDelete, onProgressChange, onAnalyse, onReprocess }) {
+function JobCard({ job, onDelete, onProgressChange, onAnalyse, onReprocess, onGenerateMail, onGenerateCoverLetter, busy }) {
     const [expanded, setExpanded] = useState(false)
     const [updating, setUpdating] = useState(false)
     const [deleteModalOpen, setDeleteModalOpen] = useState(false)
@@ -319,10 +319,20 @@ function JobCard({ job, onDelete, onProgressChange, onAnalyse, onReprocess }) {
                     value={job.progress || 'Checking'} onChange={e => updateProgress(e.target.value)} disabled={updating}>
                     {PROGRESS_STAGES.map(s => <option key={s}>{s}</option>)}
                 </select>
-                <button className="btn btn-secondary btn-sm" onClick={() => onAnalyse(job)} disabled={job.is_parsed === false}>
+                <button className="btn btn-secondary btn-sm btn-analyze" onClick={() => onAnalyse(job)} disabled={job.is_parsed === false || busy}>
                     <FileText size={14} /> Analyse
                 </button>
-                <button className="btn btn-ghost btn-sm" onClick={() => setDeleteModalOpen(true)} style={{ marginLeft: 'auto', color: 'var(--danger)' }}>
+                {job.progress !== 'Checking' && (
+                    <>
+                        <button className="btn btn-secondary btn-sm btn-mail" onClick={() => onGenerateMail(job)} title="Create Cold Mail" disabled={busy}>
+                            <Mail size={14} /> Mail
+                        </button>
+                        <button className="btn btn-secondary btn-sm btn-cover" onClick={() => onGenerateCoverLetter(job)} title="Create Cover Letter" disabled={busy}>
+                            <FileText size={14} /> Cover Letter
+                        </button>
+                    </>
+                )}
+                <button className="btn btn-ghost btn-sm btn-delete" onClick={() => setDeleteModalOpen(true)} style={{ marginLeft: 'auto', color: 'var(--danger)' }}>
                     <Trash2 size={14} />
                 </button>
             </div>
@@ -339,6 +349,8 @@ export default function JobsPage() {
     const [analysing, setAnalysing] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
     const [filterStatus, setFilterStatus] = useState('All')
+    const [generatedContent, setGeneratedContent] = useState(null)
+    const [generating, setGenerating] = useState(false)
     const { llmPayload } = useSettings()
 
     const load = refresh;
@@ -373,6 +385,30 @@ export default function JobsPage() {
             setJobs(js => js.map(j => j.id === jobId ? { ...j, is_parsed: false, error_message: null } : j))
             toast.success('Retry started')
         } catch { toast.error('Failed to retry') }
+    }
+
+    async function generateMail(job) {
+        setGenerating(true)
+        const tid = toast.loading('Generating cold mail...')
+        try {
+            const { data } = await api.post('/generate_mail', { job_id: job.id, ...llmPayload })
+            setGeneratedContent({ title: 'Generated Cold Mail', content: data.mail })
+            toast.success('Mail generated!', { id: tid })
+        } catch (err) {
+            toast.error('Failed to generate mail', { id: tid })
+        } finally { setGenerating(false) }
+    }
+
+    async function generateCoverLetter(job) {
+        setGenerating(true)
+        const tid = toast.loading('Generating cover letter...')
+        try {
+            const { data } = await api.post('/generate_cover_letter', { job_id: job.id, ...llmPayload })
+            setGeneratedContent({ title: 'Generated Cover Letter', content: data.cover_letter })
+            toast.success('Cover letter generated!', { id: tid })
+        } catch (err) {
+            toast.error('Failed to generate cover letter', { id: tid })
+        } finally { setGenerating(false) }
     }
 
     const filteredJobs = jobs.filter(j => {
@@ -417,7 +453,19 @@ export default function JobsPage() {
                         <p>Try adjusting your search or filters</p>
                     </div>
                 ) : (
-                    filteredJobs.map(j => <JobCard key={j.id} job={j} onDelete={remove} onProgressChange={changeProgress} onAnalyse={analyse} onReprocess={reprocess} />)
+                    filteredJobs.map(j => (
+                        <JobCard 
+                            key={j.id} 
+                            job={j} 
+                            onDelete={remove} 
+                            onProgressChange={changeProgress} 
+                            onAnalyse={analyse} 
+                            onReprocess={reprocess}
+                            onGenerateMail={generateMail}
+                            onGenerateCoverLetter={generateCoverLetter}
+                            busy={generating}
+                        />
+                    ))
                 )}
             </div>
 
@@ -453,6 +501,29 @@ export default function JobsPage() {
                                     <AnalysisResult raw={analysis.result} />
                                 </>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+            
+            {generatedContent && (
+                <div className="modal-overlay">
+                    <div className="modal-box" style={{ maxWidth: 800, height: '80vh', display: 'flex', flexDirection: 'column', padding: 0 }}>
+                        <div className="modal-header">
+                            <h3>{generatedContent.title}</h3>
+                            <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setGeneratedContent(null)}>✕</button>
+                        </div>
+                        <div className="modal-body" style={{ flex: 1, overflowY: 'auto', padding: '1.25rem' }}>
+                             <div className="markdown-body" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                                <ReactMarkdown>{generatedContent.content}</ReactMarkdown>
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-secondary" onClick={() => {
+                                navigator.clipboard.writeText(generatedContent.content)
+                                toast.success('Copied to clipboard!')
+                            }}>Copy to Clipboard</button>
+                            <button className="btn btn-primary" onClick={() => setGeneratedContent(null)}>Close</button>
                         </div>
                     </div>
                 </div>

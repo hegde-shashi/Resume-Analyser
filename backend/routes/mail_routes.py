@@ -14,7 +14,7 @@ mail_bp = Blueprint("mail", __name__)
 @jwt_required()
 def generate_mail():
 
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
 
     data = request.get_json() or {}
 
@@ -50,7 +50,7 @@ def generate_mail():
 @jwt_required()
 def generate_cover_letter():
 
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
 
     data = request.get_json() or {}
 

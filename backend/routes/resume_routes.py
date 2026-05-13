@@ -132,7 +132,7 @@ def get_resume_details():
         return jsonify(details)
         
     try:
-        llm = get_llm(llm_config)
+        llm = get_llm(data)
         details = extract_resume_details(llm, resume.text_chunk)
         
         resume.structured_details = details

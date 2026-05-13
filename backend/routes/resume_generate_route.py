@@ -19,7 +19,7 @@ resume_gen_bp = Blueprint("resume_gen", __name__)
 @resume_gen_bp.route("/resume/preview", methods=["POST"])
 @jwt_required()
 def resume_preview():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     
     # Handle both multipart/form-data and JSON
     if request.is_json:

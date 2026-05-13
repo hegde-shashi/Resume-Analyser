@@ -58,18 +58,18 @@ def get_llm(data=None, streaming=False, temperature=0, enable_tools=False):
 
 def check_llm(API_KEY):
     try:
-        client = genai.Client(api_key=API_KEY)
-        models = client.models.list()
-        res = []
-        for m in models:
-            if any(word in m.name.lower() for word in ["image", "tts", "robotics", "computer", "research", "banana", 'embedding', 'audio']):
-                continue
-            if 'gemini' in m.name.lower() or 'gemma' in m.name.lower():
-                res.append(str(m.name).split("/")[1])
-        
-        if not res:
-            return ["gemini-2.5-flash", "gemini-2.5-flash-lite"] 
-        return res
+        with genai.Client(api_key=API_KEY) as client:
+            models = client.models.list()
+            res = []
+            for m in models:
+                if any(word in m.name.lower() for word in ["image", "tts", "robotics", "computer", "research", "banana", 'embedding', 'audio']):
+                    continue
+                if 'gemini' in m.name.lower() or 'gemma' in m.name.lower():
+                    res.append(str(m.name).split("/")[1])
+            
+            if not res:
+                return ["gemini-1.5-flash", "gemini-1.5-flash-lite"] 
+            return res
     except Exception as e:
         raise ValueError(handle_llm_error(e))
 
