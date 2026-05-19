@@ -49,13 +49,23 @@ export function DataProvider({ children }) {
         }
     }, [isAuth, fetchAll])
 
-    // Refresh when window gains focus (user comes back from extension)
+    // Refresh when window gains focus (user comes back from extension) or periodically
     useEffect(() => {
         if (!isAuth) return;
         
         const onFocus = () => fetchAll(true, true)
         window.addEventListener('focus', onFocus)
-        return () => window.removeEventListener('focus', onFocus)
+        
+        // Poll silently every 10 seconds to catch jobs added via the extension
+        // while the browser window is side-by-side or not triggering focus events
+        const pollInterval = setInterval(() => {
+            fetchAll(true, true)
+        }, 10000)
+
+        return () => {
+            window.removeEventListener('focus', onFocus)
+            clearInterval(pollInterval)
+        }
     }, [isAuth, fetchAll])
 
     const refresh = () => fetchAll(true)
