@@ -1270,6 +1270,18 @@ if (sendBtn) sendBtn.onclick = async () => {
         
         setStatus("Job saved to queue! Parsing in background.", "success");
 
+        try {
+            chrome.tabs.query({ url: ["*://localhost/*", "*://127.0.0.1/*"] }, (tabs) => {
+                for (const tab of tabs) {
+                    chrome.tabs.sendMessage(tab.id, { action: "job_saved" }, () => {
+                        const _ = chrome.runtime.lastError; // ignore error
+                    });
+                }
+            });
+        } catch (e) {
+            console.error("Broadcast error:", e);
+        }
+
         // We can still call this to sync state, but the UI is already updated
         fetchExistingJobForCurrentUrl();
 

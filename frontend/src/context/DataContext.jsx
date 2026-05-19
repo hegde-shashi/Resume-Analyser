@@ -56,6 +56,14 @@ export function DataProvider({ children }) {
         const onFocus = () => fetchAll(true, true)
         window.addEventListener('focus', onFocus)
         
+        // Listen for direct messages from the extension's content script
+        const onMessage = (event) => {
+            if (event.data?.type === 'MAARGA_JOB_SAVED') {
+                fetchAll(true, true)
+            }
+        }
+        window.addEventListener('message', onMessage)
+
         // Poll silently every 10 seconds to catch jobs added via the extension
         // while the browser window is side-by-side or not triggering focus events
         const pollInterval = setInterval(() => {
@@ -64,6 +72,7 @@ export function DataProvider({ children }) {
 
         return () => {
             window.removeEventListener('focus', onFocus)
+            window.removeEventListener('message', onMessage)
             clearInterval(pollInterval)
         }
     }, [isAuth, fetchAll])

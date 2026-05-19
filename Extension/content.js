@@ -21,6 +21,11 @@
             sendResponse({ hasForm });
         }
 
+        if (request.action === "job_saved") {
+            window.postMessage({ type: "MAARGA_JOB_SAVED" }, "*");
+            sendResponse({ success: true });
+        }
+
         if (request.action === "autofill") {
             const myVer = window.__autofillVersion;
             console.log(`[AF v4.1 #${myVer}] Starting autofill`);
