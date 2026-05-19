@@ -282,7 +282,10 @@ function JobCard({ job, onDelete, onProgressChange, onAnalyse, onReprocess, onGe
                     </div>
                     <div className="job-card-company" style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         {job.error_message ? (
-                            <span style={{ color: 'var(--danger)', fontSize: '0.8rem', fontWeight: 600 }}>⚠️ Error: {String(job.error_message).split(/\n|\\n/)[0].trim()}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ color: 'var(--danger)', fontSize: '0.8rem', fontWeight: 600 }}>⚠️ Error: {String(job.error_message).split(/\n|\\n/)[0].trim()}</span>
+                                <button className="btn btn-ghost btn-xs" onClick={() => onReprocess(job.id)} title="Retry"><RefreshCw size={12} /></button>
+                            </div>
                         ) : job.is_parsed === false ? (
                             <span style={{ color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem' }}>
                                 <RefreshCw size={12} className="spin" /> AI Processing...
@@ -304,6 +307,12 @@ function JobCard({ job, onDelete, onProgressChange, onAnalyse, onReprocess, onGe
 
             {expanded && (
                 <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-light)' }}>
+                    {job.created_at && (
+                        <div style={{ marginBottom: '0.6rem' }}>
+                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '0.3rem' }}>Applied Date</div>
+                            <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{job.created_at}</div>
+                        </div>
+                    )}
                     <Section label="Required Skills" items={toList(job.skills_required)} />
                     <Section label="Preferred Skills" items={toList(job.preferred_skills)} />
                     <Section label="Responsibilities" items={toList(job.responsibilities)} />
@@ -435,9 +444,14 @@ export default function JobsPage() {
                         </select>
                         <div className="mobile-only"><ListFilter size={18} /></div>
                     </div>
-                    <div className="search-bar-wrapper">
+                    <div className="search-bar-wrapper" style={{ position: 'relative' }}>
                         <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translate(0, -50%)', color: 'var(--text-muted)' }} />
                         <input type="text" className="form-input" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ padding: '0 36px', width: '100%', height: '38px' }} />
+                        {searchQuery && (
+                            <button className="btn btn-ghost btn-xs" style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translate(0, -50%)', padding: 0 }} onClick={() => setSearchQuery('')}>
+                                <X size={14} color="var(--text-muted)" />
+                            </button>
+                        )}
                     </div>
                     <button className="btn btn-primary" onClick={() => setShowAdd(true)} style={{ height: '38px' }}>
                         <Plus size={16} /> <span className="desktop-only">Add Job</span>

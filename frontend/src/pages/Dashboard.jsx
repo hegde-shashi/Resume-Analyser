@@ -117,7 +117,7 @@ export default function Dashboard({ setPage }) {
                                 <div style={{ minWidth: 0, flex: 1 }}>
                                     <div style={{ fontWeight: 700, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{j.company}</div>
                                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                        {j.is_parsed === false ? 'AI Processing...' : j.job_title}
+                                        {j.error_message ? <span style={{ color: 'var(--danger)' }}>⚠️ Error Processing Job</span> : j.is_parsed === false ? 'AI Processing...' : j.job_title}
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>

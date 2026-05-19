@@ -11,7 +11,7 @@ export function DataProvider({ children }) {
     const [loading, setLoading] = useState(false)
     const [lastFetch, setLastFetch] = useState(null)
 
-    const fetchAll = useCallback(async (force = false) => {
+    const fetchAll = useCallback(async (force = false, silent = false) => {
         // Only fetch if authenticated
         if (!isAuth) return;
 
@@ -21,7 +21,7 @@ export function DataProvider({ children }) {
             return;
         }
 
-        setLoading(true)
+        if (!silent) setLoading(true)
         try {
             const [jRes, rRes] = await Promise.all([
                 api.get('/get_jobs'),
@@ -33,7 +33,7 @@ export function DataProvider({ children }) {
         } catch (err) {
             console.error("Failed to fetch data:", err)
         } finally {
-            setLoading(false)
+            if (!silent) setLoading(false)
         }
     }, [isAuth, lastFetch, jobs.length])
 
@@ -53,7 +53,7 @@ export function DataProvider({ children }) {
     useEffect(() => {
         if (!isAuth) return;
         
-        const onFocus = () => fetchAll()
+        const onFocus = () => fetchAll(true, true)
         window.addEventListener('focus', onFocus)
         return () => window.removeEventListener('focus', onFocus)
     }, [isAuth, fetchAll])
