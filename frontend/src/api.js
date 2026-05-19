@@ -16,6 +16,15 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem('token')
     if (token) config.headers.Authorization = `Bearer ${token}`
+    
+    // Prevent aggressive browser caching of GET requests (solves stale data on polling)
+    if (config.method === 'get') {
+        config.params = {
+            ...config.params,
+            _t: new Date().getTime()
+        }
+    }
+    
     return config
 })
 
